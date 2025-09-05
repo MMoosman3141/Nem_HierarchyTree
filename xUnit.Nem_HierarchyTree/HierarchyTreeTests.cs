@@ -1,8 +1,32 @@
 ﻿using Nem_HierarchyTree;
+using System.Numerics;
 using System.Text.Json;
 
 namespace xUnit.Nem_HierarchyTree;
 public class HierarchyTreeTests {
+  [Fact]
+  public void Performance() {
+    HierarchyTree tree = new() {
+      MaxNodes = 5_000
+    };
+    int num = 1;
+    Node node = new($"node{num}");
+
+    while(tree.Add(node)) {
+      num++;
+      node = new($"node{num}") {
+        ParentId = node.Id
+      };
+    }
+
+    Assert.Equal(tree.MaxNodes, tree.Count);
+    Assert.Equal(BigInteger.Pow(2, tree.MaxNodes) - 1, tree.Roots[0].CheckValue);
+
+    tree.Remove(tree.Roots[0]);
+
+    Assert.Equal(0, tree.Count);
+  }
+
   [Fact]
   public void CreateDuplicateNodeName() {
     HierarchyTree tree = new();
@@ -324,13 +348,13 @@ public class HierarchyTreeTests {
   public void MaximumSize() {
     HierarchyTree tree = new();
 
-    for (int i = 0; i < HierarchyTree.MAX_NODES; i++) {
+    for (int i = 0; i < tree.MaxNodes; i++) {
       tree.Add(new Node($"Node {i}") {
         Id = Guid.NewGuid()
       });
     }
 
-    Assert.False(tree.Add(new Node($"Node {HierarchyTree.MAX_NODES}") {
+    Assert.False(tree.Add(new Node($"Node {tree.MaxNodes}") {
       Id = Guid.NewGuid()
     }));
   }
@@ -339,7 +363,7 @@ public class HierarchyTreeTests {
   public void UnalbeToAddFalseParent() {
     HierarchyTree tree = new();
 
-    for (int i = 0; i < HierarchyTree.MAX_NODES - 1; i++) {
+    for (int i = 0; i < tree.MaxNodes - 1; i++) {
       tree.Add(new Node($"Node {i}"));
     }
 
@@ -378,7 +402,7 @@ public class HierarchyTreeTests {
     tree.Add(orphan3);
 
     // Precondition: all nodes present
-    Assert.Equal(8, tree.Count());
+    Assert.Equal(8, tree.Count);
     Assert.True(tree.Contains(parent.Id));
     Assert.True(tree.Contains(child1.Id));
     Assert.True(tree.Contains(orphan1.Id));
@@ -391,7 +415,7 @@ public class HierarchyTreeTests {
     tree.CleanTree();
 
     // False parent and orphan should be removed
-    Assert.Equal(2, tree.Count());
+    Assert.Equal(2, tree.Count);
     Assert.True(tree.Contains(parent.Id));
     Assert.True(tree.Contains(child1.Id));
     Assert.False(tree.Contains(orphan1.Id));
@@ -453,7 +477,7 @@ public class HierarchyTreeTests {
     tree.Add(child221);
     tree.Add(child222);
 
-    Assert.Equal(8, tree.Count());
+    Assert.Equal(8, tree.Count);
     Assert.True(tree.Contains(root1.Name));
     Assert.True(tree.Contains(root2));
     Assert.True(tree.Contains(parent11.Name));
@@ -465,7 +489,7 @@ public class HierarchyTreeTests {
 
     tree.Clear();
 
-    Assert.Equal(0, tree.Count());
+    Assert.Equal(0, tree.Count);
     Assert.False(tree.Contains(root1));
     Assert.False(tree.Contains(root2.Name));
     Assert.False(tree.Contains(parent11));

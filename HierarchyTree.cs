@@ -10,10 +10,17 @@ namespace Nem_HierarchyTree {
     /// <summary>
     /// The maximum number of nodes allowed in the tree.
     /// </summary>
-    public const int MAX_NODES = 5_000;
+    public int MaxNodes { get; set; } = 2_000;
 
     private BigInteger _bitFlags = 0;
     private readonly HashSet<string> _nodeNames = [];
+
+    /// <summary>
+    /// Gets the number of nodes in the tree.
+    /// </summary>
+    public int Count {
+      get => FlatTree.Count;
+    }
 
     /// <summary>
     /// Gets or sets the list of root nodes in the tree.
@@ -229,15 +236,8 @@ namespace Nem_HierarchyTree {
       return FlatTree.Values.FirstOrDefault(n => n.Name == name);
     }
 
-    /// <summary>
-    /// Gets the number of nodes in the tree.
-    /// </summary>
-    public int Count() {
-      return FlatTree.Count;
-    }
-
     private BigInteger GetUnsetBit() {
-      for (int i = 0; i < MAX_NODES; i++) {
+      for (int i = 0; i < MaxNodes; i++) {
         BigInteger bit = BigInteger.One << i;
         if ((_bitFlags & bit) == 0) {
           return bit;
