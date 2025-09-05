@@ -340,13 +340,10 @@ public class HierarchyTreeTests {
     HierarchyTree tree = new();
 
     for (int i = 0; i < HierarchyTree.MAX_NODES - 1; i++) {
-      tree.Add(new Node($"Node {i}") {
-        Id = Guid.NewGuid()
-      });
+      tree.Add(new Node($"Node {i}"));
     }
 
     Node child = new("Child") {
-      Id = Guid.NewGuid(),
       ParentId = Guid.NewGuid()
     };
 
@@ -418,5 +415,110 @@ public class HierarchyTreeTests {
     Assert.Equal(countBefore, countAfter);
     Assert.True(tree.FlatTree.ContainsKey(root.Id));
     Assert.True(tree.FlatTree.ContainsKey(child.Id));
+  }
+
+  [Fact]
+  public void ClearTree() {
+    HierarchyTree tree = new();
+
+    Node root1 = new("Root1");
+    Node root2 = new("Root2");
+
+    Node parent11 = new("Parent1.1") {
+      ParentId = root1.Id
+    };
+    Node parent21 = new("Parent2.1") {
+      ParentId = root2.Id
+    };
+
+    Node child111 = new("Child1.1.1") {
+      ParentId = parent11.Id
+    };
+    Node child112 = new("Child1.1.2") {
+      ParentId = parent11.Id
+    };
+    Node child221 = new("Child2.2.1") {
+      ParentId = parent21.Id
+    };
+    Node child222 = new("Child2.2.2") {
+      ParentId = parent21.Id
+    };
+
+    tree.Add(root1);
+    tree.Add(root2);
+    tree.Add(parent11);
+    tree.Add(parent21);
+    tree.Add(child111);
+    tree.Add(child112);
+    tree.Add(child221);
+    tree.Add(child222);
+
+    Assert.Equal(8, tree.Count());
+    Assert.True(tree.Contains(root1.Name));
+    Assert.True(tree.Contains(root2));
+    Assert.True(tree.Contains(parent11.Name));
+    Assert.True(tree.Contains(parent21));
+    Assert.True(tree.Contains(child111.Name));
+    Assert.True(tree.Contains(child112));
+    Assert.True(tree.Contains(child221.Name));
+    Assert.True(tree.Contains(child222));
+
+    tree.Clear();
+
+    Assert.Equal(0, tree.Count());
+    Assert.False(tree.Contains(root1));
+    Assert.False(tree.Contains(root2.Name));
+    Assert.False(tree.Contains(parent11));
+    Assert.False(tree.Contains(parent21.Name));
+    Assert.False(tree.Contains(child111));
+    Assert.False(tree.Contains(child112.Name));
+    Assert.False(tree.Contains(child221));
+    Assert.False(tree.Contains(child222.Name));
+  }
+
+  [Fact]
+  public void GetNode() {
+    HierarchyTree tree = new();
+
+    Node root1 = new("Root1");
+    Node root2 = new("Root2");
+
+    Node parent11 = new("Parent1.1") {
+      ParentId = root1.Id
+    };
+    Node parent21 = new("Parent2.1") {
+      ParentId = root2.Id
+    };
+
+    Node child111 = new("Child1.1.1") {
+      ParentId = parent11.Id
+    };
+    Node child112 = new("Child1.1.2") {
+      ParentId = parent11.Id
+    };
+    Node child221 = new("Child2.2.1") {
+      ParentId = parent21.Id
+    };
+    Node child222 = new("Child2.2.2") {
+      ParentId = parent21.Id
+    };
+
+    tree.Add(root1);
+    tree.Add(root2);
+    tree.Add(parent11);
+    tree.Add(parent21);
+    tree.Add(child111);
+    tree.Add(child112);
+    tree.Add(child221);
+    tree.Add(child222);
+
+    Assert.Equal(root1, tree.GetNodeById(root1.Id));
+    Assert.Equal(root2, tree.GetNodeByName(root2.Name));
+    Assert.Equal(parent11, tree.GetNodeById(parent11.Id));
+    Assert.Equal(parent21, tree.GetNodeByName(parent21.Name));
+    Assert.Equal(child111, tree.GetNodeById(child111.Id));
+    Assert.Equal(child112, tree.GetNodeByName(child112.Name));
+    Assert.Equal(child221, tree.GetNodeById(child221.Id));
+    Assert.Equal(child222, tree.GetNodeByName(child222.Name));
   }
 }
