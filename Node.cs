@@ -12,6 +12,9 @@ namespace Nem_HierarchyTree;
 public class Node(string name) {
   private BigInteger _bitFlag;
 
+  [JsonIgnore]
+  internal bool IsFalseParent { get; set; } = false;
+
   /// <summary>
   /// Gets or sets the unique identifier for this node.
   /// </summary>
@@ -54,7 +57,7 @@ public class Node(string name) {
   /// </summary>
   [JsonIgnore]
   public List<Node> Children { get; set; } = [];
-  
+
   internal bool AddChild(Node child) {
     if (Children.Contains(child)) {
       return false;
@@ -177,7 +180,7 @@ public class Node(string name) {
     ParentNode.PropogateAddToParents(value);
   }
   private void PropogateRemoveToParents(BigInteger value) {
-    if(ParentNode is null) {
+    if (ParentNode is null) {
       return;
     }
     ParentNode.CheckValue &= ~value;

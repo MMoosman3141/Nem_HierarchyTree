@@ -32,7 +32,7 @@ namespace Nem_HierarchyTree {
     /// <param name="node">The node to add to the tree.</param>
     /// <returns>True if the node was added successfully; otherwise, false.</returns>
     public bool Add(Node node) {
-      BigInteger bitFlag = 0
+      BigInteger bitFlag = 0;
       bool nameAdded = true;
 
       try {
@@ -47,7 +47,7 @@ namespace Nem_HierarchyTree {
         }
 
         if (!FlatTree.TryAdd(node.Id, node)) {
-          if(FlatTree[node.Id].Name == "") {
+          if (FlatTree[node.Id].Name == "") {
             // If the node was added as a false parent, update it.
             UpdateFalseParent(node);
             return true;
@@ -101,7 +101,7 @@ namespace Nem_HierarchyTree {
 
       try {
         while (nodesToRemove.TryPeek(out Node current)) {
-          if(current.Children.Count > 0) {
+          if (current.Children.Count > 0) {
             foreach (Node child in current.Children) {
               nodesToRemove.Push(child);
             }
@@ -110,23 +110,25 @@ namespace Nem_HierarchyTree {
 
           nodesToRemove.Pop();
 
-          if (current.ParentId == Guid.Empty) {
-            if (!Roots.Remove(current)) {
-              return false;
+          if (!current.IsFalseParent) {
+            if (current.ParentId == Guid.Empty) {
+              if (!Roots.Remove(current)) {
+                return false;
+              }
+              removedRoot = true;
+            } else {
+              if (current.ParentNode.RemoveChild(current) is null) {
+                return false;
+              }
+              removedChild = true;
             }
-            removedRoot = true;
-          } else {
-            if (current.ParentNode.RemoveChild(current) is null) {
-              return false;
-            }
-            removedChild = true;
           }
 
           if (!FlatTree.Remove(current.Id)) {
             if (removedRoot) {
               Roots.Add(current);
             }
-            if(removedChild) {
+            if (removedChild) {
               current.ParentNode.AddChild(current);
             }
             return false;
@@ -153,16 +155,15 @@ namespace Nem_HierarchyTree {
     /// </summary>
     public void CleanTree() {
       // Clear out any false parents that were never filled in.
-      while (FlatTree.Values.Any(n => n.Name == "")) {
-        Node falseParent = FlatTree.Values.First(n => n.Name == "");
+      List<Node> falseParents = [.. FlatTree.Values.Where(n => n.Name == "")];
+      foreach (Node falseParent in falseParents) {
         Remove(falseParent);
       }
 
       // Clear out any orphaned nodes
-      foreach (Node node in FlatTree.Values.ToList()) {
-        if (node.ParentId != Guid.Empty && !FlatTree.ContainsKey(node.ParentId)) {
-          Remove(node);
-        }
+      List<Node> orphanedNodes = [.. FlatTree.Values.Where(n => n.ParentId != Guid.Empty && !FlatTree.ContainsKey(n.ParentId))];
+      foreach (Node orphan in orphanedNodes) {
+        Remove(orphan);
       }
     }
 
@@ -250,6 +251,7 @@ namespace Nem_HierarchyTree {
       // was originally added.
       FlatTree[node.Id].ParentId = node.ParentId;
       FlatTree[node.Id].Name = node.Name;
+      FlatTree[node.Id].IsFalseParent = false;
 
       if (node.ParentId == Guid.Empty) {
         if (!Roots.Contains(FlatTree[node.Id])) {
@@ -266,6 +268,7 @@ namespace Nem_HierarchyTree {
       _bitFlags |= falseParentBitFlag;
 
       Node falseParent = new("") {
+        IsFalseParent = true,
         Id = childNode.ParentId,
         BitFlag = falseParentBitFlag
       };

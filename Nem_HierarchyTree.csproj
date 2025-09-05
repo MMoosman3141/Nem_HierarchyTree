@@ -16,4 +16,8 @@
     <None Remove="xUnit.Nem_HierarchyTree\**" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="CodeCoverageReport.ps1" />
+  </ItemGroup>
+
 </Project>

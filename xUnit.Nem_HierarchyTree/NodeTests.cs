@@ -1,9 +1,7 @@
 using Nem_HierarchyTree;
-using Xunit;
-using System;
 using System.Numerics;
 
-namespace xUnit.Nem_HierarchyTree; 
+namespace xUnit.Nem_HierarchyTree;
 public class NodeTests {
   [Fact]
   public void Constructor_SetsPropertiesCorrectly() {
@@ -84,7 +82,7 @@ public class NodeTests {
       BitFlag = 2,
     };
 
-    var result = parent.RemoveChild(child);
+    Node result = parent.RemoveChild(child);
 
     Assert.Null(result);
   }

@@ -22,6 +22,8 @@ public class HierarchyTreeJsonConverter : JsonConverter<HierarchyTree> {
       tree.Add(node);
     }
 
+    tree.CleanTree();
+
     return tree;
   }
 
