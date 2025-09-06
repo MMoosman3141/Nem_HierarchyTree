@@ -76,49 +76,48 @@ public class HierarchyTreeTests {
   public void SerializeDeserializeJson() {
     HierarchyTree originalTree = new();
 
-    originalTree.Add(new Node("Child 1.2.1") {
-      Id = Guid.Parse("00000000-0000-0000-0000-000000000121"),
-      ParentId = Guid.Parse("00000000-0000-0000-0000-000000000012")
-    });
-    originalTree.Add(new Node("Child 1.1") {
-      Id = Guid.Parse("00000000-0000-0000-0000-000000000011"),
-      ParentId = Guid.Parse("00000000-0000-0000-0000-000000000001")
-    });
-    originalTree.Add(new Node("Child 1.2") {
-      Id = Guid.Parse("00000000-0000-0000-0000-000000000012"),
-      ParentId = Guid.Parse("00000000-0000-0000-0000-000000000001")
-    });
-    originalTree.Add(new Node("Root 1") {
-      Id = Guid.Parse("00000000-0000-0000-0000-000000000001")
-    });
+    Node parent1 = new("Parent 1");
+    Node child11 = new("Child 1.1") {
+      ParentId = parent1.Id
+    };
+    Node child12 = new("Child 1.2") {
+      ParentId = parent1.Id
+    };
+    Node child121 = new("Child 1.2.1") {
+      ParentId = child12.Id
+    };
 
-    originalTree.Add(new Node("Root 2") {
-      Id = Guid.Parse("00000000-0000-0000-0000-000000000002")
-    });
-    originalTree.Add(new Node("Child 2.1") {
-      Id = Guid.Parse("00000000-0000-0000-0000-000000000021"),
-      ParentId = Guid.Parse("00000000-0000-0000-0000-000000000002")
-    });
-    originalTree.Add(new Node("Child 2.2") {
-      Id = Guid.Parse("00000000-0000-0000-0000-000000000022"),
-      ParentId = Guid.Parse("00000000-0000-0000-0000-000000000002")
-    });
+    // Adding out of order is intentional to test ability to link parents to existing children correctly
+    originalTree.Add(child121);
+    originalTree.Add(child11);
+    originalTree.Add(child12);
+    originalTree.Add(parent1);
 
+    Node parent2 = new("Parent 2");
+    Node child21 = new("Child 2.1") {
+      ParentId = parent2.Id
+    };
+    Node child22 = new("Child 2.2") {
+      ParentId = parent2.Id
+    };
 
-    originalTree.Add(new Node("Child 3.1") {
-      Id = Guid.Parse("00000000-0000-0000-0000-000000000031"),
-      ParentId = Guid.Parse("00000000-0000-0000-0000-000000000003")
-    });
-    originalTree.Add(new Node("Root 3") {
-      Id = Guid.Parse("00000000-0000-0000-0000-000000000003")
-    });
-    originalTree.Add(new Node("Child 3.2") {
-      Id = Guid.Parse("00000000-0000-0000-0000-000000000032"),
-      ParentId = Guid.Parse("00000000-0000-0000-0000-000000000003")
-    });
+    originalTree.Add(parent2);
+    originalTree.Add(child21);
+    originalTree.Add(child22);
+
+    Node parent3 = new("Parent 3");
+    Node child31 = new("Child 3.1") {
+      ParentId = parent3.Id
+    };
+    Node child32 = new("Child 3.2") {
+      ParentId = parent3.Id
+    };
+
+    originalTree.Add(child31);
+    originalTree.Add(parent3);
+    originalTree.Add(child32);
 
     string json = JsonSerializer.Serialize(originalTree);
-
     HierarchyTree tree = JsonSerializer.Deserialize<HierarchyTree>(json);
 
     Assert.Equal(3, tree.Roots.Count);
@@ -133,13 +132,10 @@ public class HierarchyTreeTests {
 
   }
 
-
   [Fact]
   public void Add_NodeWithoutParent_AddsToRootsAndFlatTree() {
     HierarchyTree tree = new();
-    Node node = new("Root") {
-      Id = Guid.NewGuid(),
-    };
+    Node node = new("Root");
 
     bool result = tree.Add(node);
 
@@ -151,16 +147,11 @@ public class HierarchyTreeTests {
   [Fact]
   public void Add_NodeWithParent_AddsAsChildAndToFlatTree() {
     HierarchyTree tree = new();
-    Node parent = new("Parent") {
-      Id = Guid.NewGuid(),
-      BitFlag = 1,
-    };
+    Node parent = new("Parent");
     tree.Add(parent);
 
     Node child = new("Child") {
-      Id = Guid.NewGuid(),
-      ParentId = parent.Id,
-      BitFlag = 2,
+      ParentId = parent.Id
     };
     bool result = tree.Add(child);
 
@@ -172,10 +163,7 @@ public class HierarchyTreeTests {
   [Fact]
   public void Remove_NodeWithoutChildren_RemovesFromRootsAndFlatTree() {
     HierarchyTree tree = new();
-    Node node = new("Root") {
-      Id = Guid.NewGuid(),
-      BitFlag = 1,
-    };
+    Node node = new("Root");
     tree.Add(node);
 
     bool result = tree.Remove(node);
@@ -188,29 +176,23 @@ public class HierarchyTreeTests {
   [Fact]
   public void Remove_NodeWithChildren_RemovesRecursively() {
     HierarchyTree tree = new();
-    Node parent = new("Parent") {
-      Id = Guid.NewGuid(),
-    };
+    Node parent = new("Parent");
     tree.Add(parent);
 
     Node subParent1 = new("SubParent1") {
-      Id = Guid.NewGuid(),
       ParentId = parent.Id,
     };
     tree.Add(subParent1);
     Node subParent2 = new("SubParent2") {
-      Id = Guid.NewGuid(),
       ParentId = parent.Id,
     };
     tree.Add(subParent2);
 
     Node child1 = new("Child1") {
-      Id = Guid.NewGuid(),
       ParentId = subParent1.Id,
     };
     tree.Add(child1);
     Node child2 = new("Child2") {
-      Id = Guid.NewGuid(),
       ParentId = subParent2.Id,
     };
     tree.Add(child2);
@@ -228,29 +210,23 @@ public class HierarchyTreeTests {
   [Fact]
   public void Remove_ChildrenUp() {
     HierarchyTree tree = new();
-    Node parent = new("Parent") {
-      Id = Guid.NewGuid(),
-    };
+    Node parent = new("Parent");
     tree.Add(parent);
 
     Node subParent1 = new("SubParent1") {
-      Id = Guid.NewGuid(),
       ParentId = parent.Id,
     };
     tree.Add(subParent1);
     Node subParent2 = new("SubParent2") {
-      Id = Guid.NewGuid(),
       ParentId = parent.Id,
     };
     tree.Add(subParent2);
 
     Node child1 = new("Child1") {
-      Id = Guid.NewGuid(),
       ParentId = subParent1.Id,
     };
     tree.Add(child1);
     Node child2 = new("Child2") {
-      Id = Guid.NewGuid(),
       ParentId = subParent2.Id,
     };
     tree.Add(child2);
@@ -280,29 +256,23 @@ public class HierarchyTreeTests {
   [Fact]
   public void Remove_ReaddWorks() {
     HierarchyTree tree = new();
-    Node parent = new("Parent") {
-      Id = Guid.NewGuid(),
-    };
+    Node parent = new("Parent");
     tree.Add(parent);
 
     Node subParent1 = new("SubParent1") {
-      Id = Guid.NewGuid(),
       ParentId = parent.Id,
     };
     tree.Add(subParent1);
     Node subParent2 = new("SubParent2") {
-      Id = Guid.NewGuid(),
       ParentId = parent.Id,
     };
     tree.Add(subParent2);
 
     Node child1 = new("Child1") {
-      Id = Guid.NewGuid(),
       ParentId = subParent1.Id,
     };
     tree.Add(child1);
     Node child2 = new("Child2") {
-      Id = Guid.NewGuid(),
       ParentId = subParent2.Id,
     };
     tree.Add(child2);
@@ -329,19 +299,16 @@ public class HierarchyTreeTests {
   [Fact]
   public void Add_NodeWithNonexistentParent_CreatesFalseParent() {
     HierarchyTree tree = new();
-    Guid parentId = Guid.NewGuid();
     Node node = new("Child") {
-      Id = Guid.NewGuid(),
-      ParentId = parentId,
-      BitFlag = 1
+      ParentId = Guid.NewGuid()
     };
 
     bool result = tree.Add(node);
 
     Assert.True(result);
-    Assert.True(tree.FlatTree.ContainsKey(parentId));
+    Assert.True(tree.FlatTree.ContainsKey(node.ParentId));
     Assert.True(tree.FlatTree.ContainsKey(node.Id));
-    Assert.Contains(node, tree.FlatTree[parentId].Children);
+    Assert.Contains(node, tree.FlatTree[node.ParentId].Children);
   }
 
   [Fact]
@@ -349,18 +316,14 @@ public class HierarchyTreeTests {
     HierarchyTree tree = new();
 
     for (int i = 0; i < tree.MaxNodes; i++) {
-      tree.Add(new Node($"Node {i}") {
-        Id = Guid.NewGuid()
-      });
+      tree.Add(new Node($"Node {i}"));
     }
 
-    Assert.False(tree.Add(new Node($"Node {tree.MaxNodes}") {
-      Id = Guid.NewGuid()
-    }));
+    Assert.False(tree.Add(new Node($"Node {tree.MaxNodes}")));
   }
 
   [Fact]
-  public void UnalbeToAddFalseParent() {
+  public void UnableToAddFalseParent() {
     HierarchyTree tree = new();
 
     for (int i = 0; i < tree.MaxNodes - 1; i++) {
@@ -378,11 +341,9 @@ public class HierarchyTreeTests {
   public void CleanTree_RemovesFalseParentsAndOrphans() {
     HierarchyTree tree = new();
 
+    Node parent = new("Parent");
     Node child1 = new("Child1") {
-      ParentId = Guid.NewGuid()
-    };
-    Node parent = new("Parent") {
-      Id = child1.ParentId
+      ParentId = parent.Id
     };
 
     Node orphan1 = new("Orphan1") {
@@ -429,13 +390,15 @@ public class HierarchyTreeTests {
   [Fact]
   public void CleanTree_DoesNothingIfTreeIsClean() {
     HierarchyTree tree = new();
-    Node root = new("Root") { Id = Guid.NewGuid() };
-    Node child = new("Child") { Id = Guid.NewGuid(), ParentId = root.Id };
+    Node root = new("Root");
+    Node child = new("Child") {
+      ParentId = root.Id 
+    };
     tree.Add(root);
     tree.Add(child);
-    int countBefore = tree.FlatTree.Count;
+    int countBefore = tree.Count;
     tree.CleanTree();
-    int countAfter = tree.FlatTree.Count;
+    int countAfter = tree.Count;
     Assert.Equal(countBefore, countAfter);
     Assert.True(tree.FlatTree.ContainsKey(root.Id));
     Assert.True(tree.FlatTree.ContainsKey(child.Id));

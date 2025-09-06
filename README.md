@@ -1,6 +1,6 @@
 # Num_HierarchyTree
 
-BitTree is a C# library for representing and manipulating hierarchical tree structures using bitwise operations for efficient node management. It is designed for scenarios where unique node identification, fast containment checks, and compact representation are required.
+Nem__HierarchyTree is a C# library for representing and manipulating hierarchical tree structures using bitwise operations for efficient node management. It is designed for scenarios where unique node identification, fast containment checks, and compact representation are required.
 
 ## Features
 - Hierarchical tree structure with support for parent and child nodes
@@ -16,10 +16,14 @@ Create a `HierarchyTree` and add `Node` objects to build your tree. Nodes can be
 
 ## Example
 ```csharp
-var tree = new HierarchyTree();
-var root = new Node("RootNode");
+HierarchyTree tree = new();
+
+Node root = new("RootNode");
 tree.Add(root);
-var child = new Node("ChildNode") { ParentId = root.Id };
+
+Node child = new("ChildNode") {
+  ParentId = root.Id
+};
 tree.Add(child);
 ```
 

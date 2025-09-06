@@ -173,18 +173,18 @@ public class Node(string name) {
   }
 
   private void PropogateAddToParents(BigInteger value) {
-    if (ParentNode is null) {
-      return;
+    Node current = ParentNode;
+    while (current is not null) {
+      current.CheckValue |= value;
+      current = current.ParentNode;
     }
-    ParentNode.CheckValue |= value;
-    ParentNode.PropogateAddToParents(value);
   }
   private void PropogateRemoveToParents(BigInteger value) {
-    if (ParentNode is null) {
-      return;
+    Node current = ParentNode;
+    while (current is not null) {
+      current.CheckValue &= ~value;
+      current = current.ParentNode;
     }
-    ParentNode.CheckValue &= ~value;
-    ParentNode.PropogateRemoveToParents(value);
   }
 
 }
