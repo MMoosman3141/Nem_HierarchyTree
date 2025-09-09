@@ -30,10 +30,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\Users\markm\OneDrive\Pictures\NemAnkh_128x128.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
     <None Include=".github\workflows\release.yml" />
   </ItemGroup>
 
