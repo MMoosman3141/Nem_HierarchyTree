@@ -1,4 +1,4 @@
-# Num_HierarchyTree
+# Nem_HierarchyTree
 
 Nem__HierarchyTree is a C# library for representing and manipulating hierarchical tree structures using bitwise operations for efficient node management. It is designed for scenarios where unique node identification, fast containment checks, and compact representation are required.
 
