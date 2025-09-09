@@ -21,7 +21,7 @@
 
   <ItemGroup>
     <Compile Remove="xUnit.Nem_HierarchyTree\**" /> 
-    <EmbeddedResource Remove="xUnit.Nem_HierarchyTree\**" />    
+    <EmbeddedResource Remove="xUnit.Nem_HierarchyTree\**" />
     <None Remove="xUnit.Nem_HierarchyTree\**" />
   </ItemGroup>
 
@@ -42,6 +42,7 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
+    <None Include="NemAnkh_128x128.png" Pack="true" PackagePath="" />
   </ItemGroup>
 
 </Project>
