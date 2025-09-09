@@ -5,12 +5,21 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <Title>Nem_BitTree</Title>
+    <Title>Nem_HierarchyTree</Title>
     <Authors>Mark Moosman</Authors>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <Description>Nem__HierarchyTree is a C# library for representing and manipulating hierarchical tree structures using bitwise operations for efficient node management. It is designed for scenarios where unique node identification, fast containment checks, and compact representation are required.</Description>
+    <Copyright>Copyright (c) 2025, Mark Moosman</Copyright>
+    <PackageProjectUrl>https://github.com/MMoosman3141/Nem_HierarchyTree</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>NemAnkh_128x128.png</PackageIcon>
+    <RepositoryUrl>https://github.com/MMoosman3141/Nem_HierarchyTree</RepositoryUrl>
+    <PackageTags>hierarchy tree;bit flag tree</PackageTags>
+    <NeutralLanguage>en</NeutralLanguage>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
   </PropertyGroup>
 
-  <ItemGroup>    
+  <ItemGroup>
     <Compile Remove="xUnit.Nem_HierarchyTree\**" /> 
     <EmbeddedResource Remove="xUnit.Nem_HierarchyTree\**" />    
     <None Remove="xUnit.Nem_HierarchyTree\**" />
@@ -18,6 +27,24 @@
 
   <ItemGroup>
     <None Remove="CodeCoverageReport.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\Users\markm\OneDrive\Pictures\NemAnkh_128x128.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="LICENSE.txt">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Update="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>
