@@ -56,7 +56,7 @@ public class Node(string name) {
   /// Gets or sets the child nodes of this node.
   /// </summary>
   [JsonIgnore]
-  public List<Node> Children { get; set; } = [];
+  public List<Node> Children { get; private set; } = [];
 
   internal bool AddChild(Node child) {
     if (Children.Contains(child)) {
@@ -65,8 +65,8 @@ public class Node(string name) {
     child.ParentId = Id;
     child.ParentNode = this;
     Children.Add(child);
-    CheckValue |= child.BitFlag;
-    PropogateAddToParents(child.BitFlag);
+    CheckValue |= child.CheckValue;
+    PropogateAddToParents(child.CheckValue);
 
     return true;
   }
@@ -150,15 +150,7 @@ public class Node(string name) {
       return false;
     }
 
-    if (BitFlag != other.BitFlag) {
-      return false;
-    }
-
     if (ParentId != other.ParentId) {
-      return false;
-    }
-
-    if (CheckValue != other.CheckValue) {
       return false;
     }
 
@@ -169,7 +161,7 @@ public class Node(string name) {
   /// Returns a hash code for this node.
   /// </summary>
   public override int GetHashCode() {
-    return HashCode.Combine(Id, Name, BitFlag, ParentId, CheckValue);
+    return HashCode.Combine(Id, Name, ParentId);
   }
 
   private void PropogateAddToParents(BigInteger value) {

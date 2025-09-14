@@ -83,24 +83,10 @@ public class NodeTests {
       BitFlag = baseNode.BitFlag,
       CheckValue = baseNode.CheckValue
     };
-    Node diffBitFlag = new(baseNode.Name) {
-      ParentId = baseNode.ParentId,
-      Id = baseNode.Id,
-      BitFlag = 4,
-      CheckValue = 4 | 8
-    };
-    Node diffCheckValue = new(baseNode.Name) {
-      ParentId = baseNode.ParentId,
-      Id = baseNode.Id,
-      BitFlag = baseNode.BitFlag,
-      CheckValue = 16 | 4
-    };
-
+    
     Assert.NotEqual(baseNode, diffId);
     Assert.NotEqual(baseNode, diffName);
     Assert.NotEqual(baseNode, diffParent);
-    Assert.NotEqual(baseNode, diffBitFlag);
-    Assert.NotEqual(baseNode, diffCheckValue);
   }
 
   [Fact]
