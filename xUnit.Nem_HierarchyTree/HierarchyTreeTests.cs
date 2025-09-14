@@ -1,4 +1,5 @@
 ﻿using Nem_HierarchyTree;
+using NuGet.Frameworks;
 using System.Numerics;
 using System.Text.Json;
 
@@ -26,6 +27,233 @@ public class HierarchyTreeTests {
 
     Assert.Equal(0, tree.Count);
   }
+
+  [Fact]
+  public void BuildBottomUp() {
+    HierarchyTree tree = new();
+    Node topParent = new("Top Parent");
+    Node subParent1 = new("SubParent 1") {
+      ParentId = topParent.Id
+    };
+    Node subParent2 = new("SubParent 2") {
+      ParentId = subParent1.Id
+    };
+    Node subParent3 = new("SubParent 3") {
+      ParentId = subParent2.Id
+    };
+    Node terminalNode = new("Terminal Node") {
+      ParentId = subParent3.Id
+    };
+
+    tree.Add(terminalNode);
+    tree.Add(subParent3);
+    tree.Add(subParent2);
+    tree.Add(subParent1);
+    tree.Add(topParent);
+
+    terminalNode = tree.GetNodeById(terminalNode.Id);
+    subParent3 = tree.GetNodeById(subParent3.Id);
+    subParent2 = tree.GetNodeById(subParent2.Id);
+    subParent1 = tree.GetNodeById(subParent1.Id);
+    topParent = tree.GetNodeById(topParent.Id);
+
+    Assert.Equal(5, tree.Count);
+    Assert.Single(tree.Roots);
+
+    Assert.True(topParent.Contains(subParent1));
+    Assert.True(topParent.Contains(subParent2));
+    Assert.True(topParent.Contains(subParent3));
+    Assert.True(topParent.Contains(terminalNode));
+
+    Assert.True(subParent1.Contains(subParent2));
+    Assert.True(subParent1.Contains(subParent3));
+    Assert.True(subParent1.Contains(terminalNode));
+    Assert.False(subParent1.Contains(topParent));
+
+    Assert.True(subParent2.Contains(subParent3));
+    Assert.True(subParent2.Contains(terminalNode));
+    Assert.False(subParent2.Contains(topParent));
+    Assert.False(subParent2.Contains(subParent1));
+
+    Assert.False(subParent3.Contains(topParent));
+    Assert.False(subParent3.Contains(subParent1));
+    Assert.False(subParent3.Contains(subParent2));
+    Assert.True(subParent3.Contains(terminalNode));
+
+  }
+
+  [Fact]
+  public void BuildRandomOrder() {
+    List<Node> nodes = [];
+
+    HierarchyTree tree = new();
+    Node topParent = new("Top Parent");
+    Node subParent1 = new("SubParent 1") {
+      ParentId = topParent.Id
+    };
+    Node subParent2 = new("SubParent 2") {
+      ParentId = subParent1.Id
+    };
+    Node subParent3 = new("SubParent 3") {
+      ParentId = subParent2.Id
+    };
+    Node subParent4 = new("SubParent 4") {
+      ParentId = subParent3.Id
+    };
+    Node subParent5 = new("SubParent 5") {
+      ParentId = subParent4.Id
+    };
+    Node subParent6 = new("SubParent 6") {
+      ParentId = subParent5.Id
+    };
+    Node subParent7 = new("SubParent 7") {
+      ParentId = subParent6.Id
+    };
+    Node subParent8 = new("SubParent 8") {
+      ParentId = subParent7.Id
+    };
+    Node subParent9 = new("SubParent 9") {
+      ParentId = subParent8.Id
+    };
+    Node subParent10 = new("SubParent 10") {
+      ParentId = subParent9.Id
+    };
+    Node subParent11 = new("SubParent 11") {
+      ParentId = subParent10.Id
+    };
+    Node subParent12 = new("SubParent 12") {
+      ParentId = subParent11.Id
+    };
+    Node subParent13 = new("SubParent 13") {
+      ParentId = subParent12.Id
+    };
+    Node subParent14 = new("SubParent 14") {
+      ParentId = subParent13.Id
+    };
+    Node subParent15 = new("SubParent 15") {
+      ParentId = subParent14.Id
+    };
+    Node subParent16 = new("SubParent 16") {
+      ParentId = subParent15.Id
+    };
+    Node subParent17 = new("SubParent 17") {
+      ParentId = subParent16.Id
+    };
+    Node subParent18 = new("SubParent 18") {
+      ParentId = subParent17.Id
+    };
+    Node subParent19 = new("SubParent 19") {
+      ParentId = subParent18.Id
+    };
+    Node subParent20 = new("SubParent 20") {
+      ParentId = subParent19.Id
+    };
+    Node terminalNode = new("Terminal Node") {
+      ParentId = subParent3.Id
+    };
+
+    nodes.Add(topParent);
+    nodes.Add(subParent1);
+    nodes.Add(subParent2);
+    nodes.Add(subParent3);
+    nodes.Add(subParent4);
+    nodes.Add(subParent5);
+    nodes.Add(subParent6);
+    nodes.Add(subParent7);
+    nodes.Add(subParent8);
+    nodes.Add(subParent9);
+    nodes.Add(subParent10);
+    nodes.Add(subParent11);
+    nodes.Add(subParent12);
+    nodes.Add(subParent13);
+    nodes.Add(subParent14);
+    nodes.Add(subParent15);
+    nodes.Add(subParent16);
+    nodes.Add(subParent17);
+    nodes.Add(subParent18);
+    nodes.Add(subParent19);
+    nodes.Add(subParent20);
+    nodes.Add(terminalNode);
+
+    Random rnd = new();
+
+    while (nodes.Count > 0) {
+      int j = rnd.Next(nodes.Count);
+      tree.Add(nodes[j]);
+      nodes.RemoveAt(j);
+    }
+
+    topParent = tree.GetNodeById(topParent.Id);
+    subParent1 = tree.GetNodeById(subParent1.Id);
+    subParent2 = tree.GetNodeById(subParent2.Id);
+    subParent3 = tree.GetNodeById(subParent3.Id);
+    subParent4 = tree.GetNodeById(subParent4.Id);
+    subParent5 = tree.GetNodeById(subParent5.Id);
+    subParent6 = tree.GetNodeById(subParent6.Id);
+    subParent7 = tree.GetNodeById(subParent7.Id);
+    subParent8 = tree.GetNodeById(subParent8.Id);
+    subParent9 = tree.GetNodeById(subParent9.Id);
+    subParent10 = tree.GetNodeById(subParent10.Id);
+    subParent11 = tree.GetNodeById(subParent11.Id);
+    subParent12 = tree.GetNodeById(subParent12.Id);
+    subParent13 = tree.GetNodeById(subParent13.Id);
+    subParent14 = tree.GetNodeById(subParent14.Id);
+    subParent15 = tree.GetNodeById(subParent15.Id);
+    subParent16 = tree.GetNodeById(subParent16.Id);
+    subParent17 = tree.GetNodeById(subParent17.Id);
+    subParent18 = tree.GetNodeById(subParent18.Id);
+    subParent19 = tree.GetNodeById(subParent19.Id);
+    subParent20 = tree.GetNodeById(subParent20.Id);
+    terminalNode = tree.GetNodeById(terminalNode.Id);
+
+    Assert.Equal(22, tree.Count);
+    Assert.Single(tree.Roots);
+    
+    Assert.True(topParent.Contains(subParent1));
+    Assert.True(topParent.Contains(subParent2));
+    Assert.True(topParent.Contains(subParent3));
+    Assert.True(topParent.Contains(subParent4));
+    Assert.True(topParent.Contains(subParent5));
+    Assert.True(topParent.Contains(subParent6));
+    Assert.True(topParent.Contains(subParent7));
+    Assert.True(topParent.Contains(subParent8));
+    Assert.True(topParent.Contains(subParent9));
+    Assert.True(topParent.Contains(subParent10));
+    Assert.True(topParent.Contains(subParent11));
+    Assert.True(topParent.Contains(subParent12));
+    Assert.True(topParent.Contains(subParent13));
+    Assert.True(topParent.Contains(subParent14));
+    Assert.True(topParent.Contains(subParent15));
+    Assert.True(topParent.Contains(subParent16));
+    Assert.True(topParent.Contains(subParent17));
+    Assert.True(topParent.Contains(subParent18));
+    Assert.True(topParent.Contains(subParent19));
+    Assert.True(topParent.Contains(subParent20));
+    Assert.True(topParent.Contains(terminalNode));
+
+    Assert.True(subParent1.Contains(subParent2));
+    Assert.True(subParent1.Contains(subParent3));
+    Assert.True(subParent1.Contains(subParent4));
+    Assert.True(subParent1.Contains(subParent5));
+    Assert.True(subParent1.Contains(subParent6));
+    Assert.True(subParent1.Contains(subParent7));
+    Assert.True(subParent1.Contains(subParent8));
+    Assert.True(subParent1.Contains(subParent9));
+    Assert.True(subParent1.Contains(subParent10));
+    Assert.True(subParent1.Contains(subParent11));
+    Assert.True(subParent1.Contains(subParent12));
+    Assert.True(subParent1.Contains(subParent13));
+    Assert.True(subParent1.Contains(subParent14));
+    Assert.True(subParent1.Contains(subParent15));
+    Assert.True(subParent1.Contains(subParent16));
+    Assert.True(subParent1.Contains(subParent17));
+    Assert.True(subParent1.Contains(subParent18));
+    Assert.True(subParent1.Contains(subParent19));
+    Assert.True(subParent1.Contains(subParent20));
+    Assert.True(subParent1.Contains(terminalNode));
+    Assert.False(subParent1.Contains(topParent));
+  }
+
 
   [Fact]
   public void CreateDuplicateNodeName() {

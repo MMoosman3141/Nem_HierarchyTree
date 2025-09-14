@@ -57,6 +57,7 @@ namespace Nem_HierarchyTree {
           if (FlatTree[node.Id].Name == "") {
             // If the node was added as a false parent, update it.
             UpdateFalseParent(node);
+            
             return true;
           } else {
             if (nameAdded) {
@@ -249,14 +250,20 @@ namespace Nem_HierarchyTree {
     private void UpdateFalseParent(Node node) {
       // Do not change the bit flag as the correct value was assigned when the false parent
       // was originally added.
-      FlatTree[node.Id].ParentId = node.ParentId;
-      FlatTree[node.Id].Name = node.Name;
-      FlatTree[node.Id].IsFalseParent = false;
+      Node falseParent = FlatTree[node.Id];
+      falseParent.ParentId = node.ParentId;
+      falseParent.Name = node.Name;
+      falseParent.IsFalseParent = false;
 
-      if (node.ParentId == Guid.Empty) {
-        if (!Roots.Contains(FlatTree[node.Id])) {
-          Roots.Add(FlatTree[node.Id]);
+      if (falseParent.ParentId == Guid.Empty) {
+        if (!Roots.Contains(falseParent)) {
+          Roots.Add(falseParent);
         }
+      } else {
+        if (!FlatTree.TryGetValue(falseParent.ParentId, out Node parent)) {
+          parent = AddFalseParent(falseParent);
+        }
+        parent.AddChild(falseParent);
       }
     }
 
