@@ -56,7 +56,7 @@ public class Node(string name) {
   /// Gets or sets the child nodes of this node.
   /// </summary>
   [JsonIgnore]
-  public List<Node> Children { get; set; } = [];
+  public List<Node> Children { get; private set; } = [];
 
   internal bool AddChild(Node child) {
     if (Children.Contains(child)) {

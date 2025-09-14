@@ -736,4 +736,83 @@ public class HierarchyTreeTests {
     Assert.Equal(child221, tree.GetNodeById(child221.Id));
     Assert.Equal(child222, tree.GetNodeByName(child222.Name));
   }
+
+  [Fact]
+  public void AddChildWithoutParent() {
+    HierarchyTree tree = new();
+    Node child = new("Child") {
+      ParentId = Guid.NewGuid()
+    };
+    bool result = tree.Add(child);
+
+    Assert.True(result);
+    Assert.True(tree.FlatTree.ContainsKey(child.ParentId));
+    Assert.True(tree.FlatTree.ContainsKey(child.Id));
+    Assert.Contains(child, tree.GetNodeById(child.ParentId).Children);
+
+    Assert.True(tree.GetNodeById(child.ParentId).IsFalseParent);
+  }
+
+  [Fact]
+  public void UnableToAddDuplicateNames() {
+    HierarchyTree tree = new();
+    Node node1 = new("Node");
+    Node node2 = new("Node");
+    bool result1 = tree.Add(node1);
+    bool result2 = tree.Add(node2);
+
+    Assert.True(result1);
+    Assert.False(result2);
+    Assert.True(tree.FlatTree.ContainsKey(node1.Id));
+    Assert.False(tree.FlatTree.ContainsKey(node2.Id));
+  }
+
+  [Fact]
+  public void UnableToAddDuplicateIds() {
+    HierarchyTree tree = new();
+    Guid duplicateId = Guid.NewGuid();
+    Node node1 = new("Node1") {
+      Id = duplicateId
+    };
+    Node node2 = new("Node2") {
+      Id = duplicateId
+    };
+    bool result1 = tree.Add(node1);
+    bool result2 = tree.Add(node2);
+
+    Assert.True(result1);
+    Assert.False(result2);
+    Assert.True(tree.FlatTree.ContainsKey(node1.Id));
+    Assert.Equal("Node1", tree.FlatTree[duplicateId].Name);
+  }
+
+  [Fact]
+  public void UnableToAddWithEmptyName() {
+    HierarchyTree tree = new();
+    Node node = new("");
+    Assert.False(tree.Add(node));
+  }
+
+  [Fact]
+  public void UnableToAddWithNullName() {
+    HierarchyTree tree = new();
+    Node node = new(null);
+    Assert.False(tree.Add(node));
+  }
+
+  [Fact]
+  public void UnableToAddWithWhitespaceName() {
+    HierarchyTree tree = new();
+    Node node = new("   ");
+    Assert.False(tree.Add(node));
+  }
+
+  [Fact]
+  public void UnableToAddWithEmptyId() {
+    HierarchyTree tree = new();
+    Node node = new("Node") {
+      Id = Guid.Empty
+    };
+    Assert.False(tree.Add(node));
+  }
 }

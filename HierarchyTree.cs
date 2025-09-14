@@ -43,6 +43,14 @@ namespace Nem_HierarchyTree {
       bool nameAdded = true;
 
       try {
+        if(string.IsNullOrWhiteSpace(node.Name)) {
+          throw new InvalidOperationException("Node name cannot be null or whitespace.");
+        }
+
+        if(node.Id == Guid.Empty) {
+          throw new InvalidOperationException("Node ID cannot be an empty GUID.");
+        }
+
         bitFlag = GetUnsetBit();
         if (bitFlag == 0) {
           throw new InvalidOperationException("The tree is full. No more nodes can be added.");
