@@ -13,7 +13,7 @@ public class HierarchyTreeTests {
     int num = 1;
     Node node = new($"node{num}");
 
-    while(tree.Add(node)) {
+    while(tree.TryAdd(node)) {
       num++;
       node = new($"node{num}") {
         ParentId = node.Id
@@ -30,7 +30,7 @@ public class HierarchyTreeTests {
 
   [Fact]
   public void BuildBottomUp() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
     Node topParent = new("Top Parent");
     Node subParent1 = new("SubParent 1") {
       ParentId = topParent.Id
@@ -51,11 +51,11 @@ public class HierarchyTreeTests {
     tree.Add(subParent1);
     tree.Add(topParent);
 
-    terminalNode = tree.GetNodeById(terminalNode.Id);
-    subParent3 = tree.GetNodeById(subParent3.Id);
-    subParent2 = tree.GetNodeById(subParent2.Id);
-    subParent1 = tree.GetNodeById(subParent1.Id);
-    topParent = tree.GetNodeById(topParent.Id);
+    terminalNode = tree[terminalNode.Id];
+    subParent3 = tree[subParent3.Id];
+    subParent2 = tree[subParent2.Id];
+    subParent1 = tree[subParent1.Id];
+    topParent = tree[topParent.Id];
 
     Assert.Equal(5, tree.Count);
     Assert.Single(tree.Roots);
@@ -86,7 +86,7 @@ public class HierarchyTreeTests {
   public void BuildRandomOrder() {
     List<Node> nodes = [];
 
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
     Node topParent = new("Top Parent");
     Node subParent1 = new("SubParent 1") {
       ParentId = topParent.Id
@@ -183,28 +183,28 @@ public class HierarchyTreeTests {
       nodes.RemoveAt(j);
     }
 
-    topParent = tree.GetNodeById(topParent.Id);
-    subParent1 = tree.GetNodeById(subParent1.Id);
-    subParent2 = tree.GetNodeById(subParent2.Id);
-    subParent3 = tree.GetNodeById(subParent3.Id);
-    subParent4 = tree.GetNodeById(subParent4.Id);
-    subParent5 = tree.GetNodeById(subParent5.Id);
-    subParent6 = tree.GetNodeById(subParent6.Id);
-    subParent7 = tree.GetNodeById(subParent7.Id);
-    subParent8 = tree.GetNodeById(subParent8.Id);
-    subParent9 = tree.GetNodeById(subParent9.Id);
-    subParent10 = tree.GetNodeById(subParent10.Id);
-    subParent11 = tree.GetNodeById(subParent11.Id);
-    subParent12 = tree.GetNodeById(subParent12.Id);
-    subParent13 = tree.GetNodeById(subParent13.Id);
-    subParent14 = tree.GetNodeById(subParent14.Id);
-    subParent15 = tree.GetNodeById(subParent15.Id);
-    subParent16 = tree.GetNodeById(subParent16.Id);
-    subParent17 = tree.GetNodeById(subParent17.Id);
-    subParent18 = tree.GetNodeById(subParent18.Id);
-    subParent19 = tree.GetNodeById(subParent19.Id);
-    subParent20 = tree.GetNodeById(subParent20.Id);
-    terminalNode = tree.GetNodeById(terminalNode.Id);
+    topParent = tree[topParent.Id];
+    subParent1 = tree[subParent1.Id];
+    subParent2 = tree[subParent2.Id];
+    subParent3 = tree[subParent3.Id];
+    subParent4 = tree[subParent4.Id];
+    subParent5 = tree[subParent5.Id];
+    subParent6 = tree[subParent6.Id];
+    subParent7 = tree[subParent7.Id];
+    subParent8 = tree[subParent8.Id];
+    subParent9 = tree[subParent9.Id];
+    subParent10 = tree[subParent10.Id];
+    subParent11 = tree[subParent11.Id];
+    subParent12 = tree[subParent12.Id];
+    subParent13 = tree[subParent13.Id];
+    subParent14 = tree[subParent14.Id];
+    subParent15 = tree[subParent15.Id];
+    subParent16 = tree[subParent16.Id];
+    subParent17 = tree[subParent17.Id];
+    subParent18 = tree[subParent18.Id];
+    subParent19 = tree[subParent19.Id];
+    subParent20 = tree[subParent20.Id];
+    terminalNode = tree[terminalNode.Id];
 
     Assert.Equal(22, tree.Count);
     Assert.Single(tree.Roots);
@@ -257,7 +257,7 @@ public class HierarchyTreeTests {
 
   [Fact]
   public void CreateDuplicateNodeName() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
     Node parent = new("Parent");
     Node child1 = new("Child") {
       ParentId = parent.Id
@@ -266,9 +266,9 @@ public class HierarchyTreeTests {
       ParentId = parent.Id
     };
 
-    Assert.True(tree.Add(parent));
-    Assert.True(tree.Add(child1));
-    Assert.False(tree.Add(child2));
+    Assert.True(tree.TryAdd(parent));
+    Assert.True(tree.TryAdd(child1));
+    Assert.False(tree.TryAdd(child2));
 
     Assert.True(tree.FlatTree.ContainsKey(parent.Id));
     Assert.True(tree.FlatTree.ContainsKey(child1.Id));
@@ -277,7 +277,7 @@ public class HierarchyTreeTests {
 
   [Fact]
   public void CreateDuplicateNodeId() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
     Node parent = new("Parent");
 
     Guid childId = Guid.NewGuid();
@@ -291,9 +291,9 @@ public class HierarchyTreeTests {
       ParentId = parent.Id
     };
 
-    Assert.True(tree.Add(parent));
-    Assert.True(tree.Add(child1));
-    Assert.False(tree.Add(child2));
+    Assert.True(tree.TryAdd(parent));
+    Assert.True(tree.TryAdd(child1));
+    Assert.False(tree.TryAdd(child2));
 
     Assert.True(tree.FlatTree.ContainsKey(parent.Id));
     Assert.True(tree.FlatTree.ContainsKey(child1.Id));
@@ -302,7 +302,7 @@ public class HierarchyTreeTests {
 
   [Fact]
   public void SerializeDeserializeJson() {
-    HierarchyTree originalTree = new();
+    HierarchyTree originalTree = [];
 
     Node parent1 = new("Parent 1");
     Node child11 = new("Child 1.1") {
@@ -362,10 +362,10 @@ public class HierarchyTreeTests {
 
   [Fact]
   public void Add_NodeWithoutParent_AddsToRootsAndFlatTree() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
     Node node = new("Root");
 
-    bool result = tree.Add(node);
+    bool result = tree.TryAdd(node);
 
     Assert.True(result);
     Assert.Contains(node, tree.Roots);
@@ -374,14 +374,14 @@ public class HierarchyTreeTests {
 
   [Fact]
   public void Add_NodeWithParent_AddsAsChildAndToFlatTree() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
     Node parent = new("Parent");
     tree.Add(parent);
 
     Node child = new("Child") {
       ParentId = parent.Id
     };
-    bool result = tree.Add(child);
+    bool result = tree.TryAdd(child);
 
     Assert.True(result);
     Assert.Contains(child, parent.Children);
@@ -390,11 +390,11 @@ public class HierarchyTreeTests {
 
   [Fact]
   public void Remove_NodeWithoutChildren_RemovesFromRootsAndFlatTree() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
     Node node = new("Root");
     tree.Add(node);
 
-    bool result = tree.Remove(node);
+    bool result = tree.TryRemove(node);
 
     Assert.True(result);
     Assert.DoesNotContain(node, tree.Roots);
@@ -403,7 +403,7 @@ public class HierarchyTreeTests {
 
   [Fact]
   public void Remove_NodeWithChildren_RemovesRecursively() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
     Node parent = new("Parent");
     tree.Add(parent);
 
@@ -425,7 +425,7 @@ public class HierarchyTreeTests {
     };
     tree.Add(child2);
 
-    bool result = tree.Remove(parent);
+    bool result = tree.TryRemove(parent);
 
     Assert.True(result);
     Assert.False(tree.FlatTree.ContainsKey(parent.Id));
@@ -437,7 +437,7 @@ public class HierarchyTreeTests {
 
   [Fact]
   public void Remove_ChildrenUp() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
     Node parent = new("Parent");
     tree.Add(parent);
 
@@ -459,19 +459,19 @@ public class HierarchyTreeTests {
     };
     tree.Add(child2);
 
-    bool result = tree.Remove(child1);
+    bool result = tree.TryRemove(child1);
     Assert.True(result);
 
-    result = tree.Remove(child2);
+    result = tree.TryRemove(child2);
     Assert.True(result);
 
-    result = tree.Remove(subParent1);
+    result = tree.TryRemove(subParent1);
     Assert.True(result);
 
-    result = tree.Remove(subParent2);
+    result = tree.TryRemove(subParent2);
     Assert.True(result);
 
-    result = tree.Remove(parent);
+    result = tree.TryRemove(parent);
     Assert.True(result);
 
     Assert.False(tree.FlatTree.ContainsKey(parent.Id));
@@ -482,8 +482,46 @@ public class HierarchyTreeTests {
   }
 
   [Fact]
+  public void RemoveParentLeavesOtherParents() {
+    // Arrange: Build a tree with two top-level parents, each with their own child
+    HierarchyTree tree = [];
+    Node parent1 = new("Parent1");
+    Node parent2 = new("Parent2");
+    Node child1 = new("Child1") { ParentId = parent1.Id };
+    Node child2 = new("Child2") { ParentId = parent2.Id };
+
+    tree.Add(parent1);
+    tree.Add(parent2);
+    tree.Add(child1);
+    tree.Add(child2);
+
+    // Precondition: Both parents and children exist
+    Assert.Equal(4, tree.Count);
+    Assert.True(tree.Contains(parent1.Id));
+    Assert.True(tree.Contains(parent2.Id));
+    Assert.True(tree.Contains(child1.Id));
+    Assert.True(tree.Contains(child2.Id));
+    Assert.Contains(parent1, tree.Roots);
+    Assert.Contains(parent2, tree.Roots);
+
+    // Act: Remove parent1 (should also remove child1)
+    bool removed = tree.TryRemove(parent1);
+
+    // Assert: parent1 and child1 are gone, parent2 and child2 remain
+    Assert.True(removed);
+    Assert.False(tree.Contains(parent1.Id));
+    Assert.False(tree.Contains(child1.Id));
+    Assert.True(tree.Contains(parent2.Id));
+    Assert.True(tree.Contains(child2.Id));
+    Assert.DoesNotContain(parent1, tree.Roots);
+    Assert.Contains(parent2, tree.Roots);
+    Assert.Contains(child2, tree.FlatTree.Values);
+    Assert.DoesNotContain(child1, tree.FlatTree.Values);
+  }
+
+  [Fact]
   public void Remove_ReaddWorks() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
     Node parent = new("Parent");
     tree.Add(parent);
 
@@ -505,7 +543,7 @@ public class HierarchyTreeTests {
     };
     tree.Add(child2);
 
-    bool result = tree.Remove(parent);
+    bool result = tree.TryRemove(parent);
     Assert.True(result);
 
     tree.Add(parent);
@@ -514,7 +552,7 @@ public class HierarchyTreeTests {
     tree.Add(child1);
     tree.Add(child2);
 
-    result = tree.Remove(parent);
+    result = tree.TryRemove(parent);
 
     Assert.True(result);
     Assert.False(tree.FlatTree.ContainsKey(parent.Id));
@@ -526,12 +564,12 @@ public class HierarchyTreeTests {
 
   [Fact]
   public void Add_NodeWithNonexistentParent_CreatesFalseParent() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
     Node node = new("Child") {
       ParentId = Guid.NewGuid()
     };
 
-    bool result = tree.Add(node);
+    bool result = tree.TryAdd(node);
 
     Assert.True(result);
     Assert.True(tree.FlatTree.ContainsKey(node.ParentId));
@@ -541,18 +579,18 @@ public class HierarchyTreeTests {
 
   [Fact]
   public void MaximumSize() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
 
     for (int i = 0; i < tree.MaxNodes; i++) {
       tree.Add(new Node($"Node {i}"));
     }
 
-    Assert.False(tree.Add(new Node($"Node {tree.MaxNodes}")));
+    Assert.False(tree.TryAdd(new Node($"Node {tree.MaxNodes}")));
   }
 
   [Fact]
   public void UnableToAddFalseParent() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
 
     for (int i = 0; i < tree.MaxNodes - 1; i++) {
       tree.Add(new Node($"Node {i}"));
@@ -562,12 +600,12 @@ public class HierarchyTreeTests {
       ParentId = Guid.NewGuid()
     };
 
-    Assert.False(tree.Add(child));
+    Assert.False(tree.TryAdd(child));
   }
 
   [Fact]
   public void CleanTree_RemovesFalseParentsAndOrphans() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
 
     Node parent = new("Parent");
     Node child1 = new("Child1") {
@@ -617,7 +655,7 @@ public class HierarchyTreeTests {
 
   [Fact]
   public void CleanTree_DoesNothingIfTreeIsClean() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
     Node root = new("Root");
     Node child = new("Child") {
       ParentId = root.Id 
@@ -634,7 +672,7 @@ public class HierarchyTreeTests {
 
   [Fact]
   public void ClearTree() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
 
     Node root1 = new("Root1");
     Node root2 = new("Root2");
@@ -693,7 +731,7 @@ public class HierarchyTreeTests {
 
   [Fact]
   public void GetNode() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
 
     Node root1 = new("Root1");
     Node root2 = new("Root2");
@@ -727,49 +765,49 @@ public class HierarchyTreeTests {
     tree.Add(child221);
     tree.Add(child222);
 
-    Assert.Equal(root1, tree.GetNodeById(root1.Id));
-    Assert.Equal(root2, tree.GetNodeByName(root2.Name));
-    Assert.Equal(parent11, tree.GetNodeById(parent11.Id));
-    Assert.Equal(parent21, tree.GetNodeByName(parent21.Name));
-    Assert.Equal(child111, tree.GetNodeById(child111.Id));
-    Assert.Equal(child112, tree.GetNodeByName(child112.Name));
-    Assert.Equal(child221, tree.GetNodeById(child221.Id));
-    Assert.Equal(child222, tree.GetNodeByName(child222.Name));
+    Assert.Equal(root1, tree[root1.Id]);
+    Assert.Equal(root2, tree[root2.Name]);
+    Assert.Equal(parent11, tree[parent11.Id]);
+    Assert.Equal(parent21, tree[parent21.Name]);
+    Assert.Equal(child111, tree[child111.Id]);
+    Assert.Equal(child112, tree[child112.Name]);
+    Assert.Equal(child221, tree[child221.Id]);
+    Assert.Equal(child222, tree[child222.Name]);
   }
 
   [Fact]
   public void AddChildWithoutParent() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
     Node child = new("Child") {
       ParentId = Guid.NewGuid()
     };
-    bool result = tree.Add(child);
+    bool result = tree.TryAdd(child);
 
     Assert.True(result);
     Assert.True(tree.FlatTree.ContainsKey(child.ParentId));
     Assert.True(tree.FlatTree.ContainsKey(child.Id));
-    Assert.Contains(child, tree.GetNodeById(child.ParentId).Children);
+    Assert.Contains(child, tree[child.ParentId].Children);
 
-    Assert.True(tree.GetNodeById(child.ParentId).IsFalseParent);
+    Assert.True(tree[child.ParentId].IsFalseParent);
   }
 
   [Fact]
   public void UnableToAddDuplicateNames() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
     Node node1 = new("Node");
     Node node2 = new("Node");
-    bool result1 = tree.Add(node1);
-    bool result2 = tree.Add(node2);
+    bool result1 = tree.TryAdd(node1);
+    bool result2 = tree.TryAdd(node2);
 
     Assert.True(result1);
     Assert.False(result2);
-    Assert.True(tree.FlatTree.ContainsKey(node1.Id));
-    Assert.False(tree.FlatTree.ContainsKey(node2.Id));
+    Assert.True(tree.Contains(node1.Id));
+    Assert.False(tree.Contains(node2.Id));
   }
 
   [Fact]
   public void UnableToAddDuplicateIds() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
     Guid duplicateId = Guid.NewGuid();
     Node node1 = new("Node1") {
       Id = duplicateId
@@ -777,8 +815,8 @@ public class HierarchyTreeTests {
     Node node2 = new("Node2") {
       Id = duplicateId
     };
-    bool result1 = tree.Add(node1);
-    bool result2 = tree.Add(node2);
+    bool result1 = tree.TryAdd(node1);
+    bool result2 = tree.TryAdd(node2);
 
     Assert.True(result1);
     Assert.False(result2);
@@ -788,31 +826,222 @@ public class HierarchyTreeTests {
 
   [Fact]
   public void UnableToAddWithEmptyName() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
     Node node = new("");
-    Assert.False(tree.Add(node));
+    Assert.False(tree.TryAdd(node));
   }
 
   [Fact]
   public void UnableToAddWithNullName() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
     Node node = new(null);
-    Assert.False(tree.Add(node));
+    Assert.False(tree.TryAdd(node));
   }
 
   [Fact]
   public void UnableToAddWithWhitespaceName() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
     Node node = new("   ");
-    Assert.False(tree.Add(node));
+    Assert.False(tree.TryAdd(node));
   }
 
   [Fact]
   public void UnableToAddWithEmptyId() {
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
     Node node = new("Node") {
       Id = Guid.Empty
     };
-    Assert.False(tree.Add(node));
+    Assert.False(tree.TryAdd(node));
   }
+
+  [Fact]
+  public void TestEnumerationGetsAllNodes() {
+    HierarchyTree tree = [];
+
+    Node parent1 = tree.Add(new Node("Parent 1"));
+    Node parent2 = tree.Add(new Node("Parent 2"));
+    Node parent3 = tree.Add(new Node("Parent 3"));
+
+    Node subParent11 = tree.Add(new Node("SubParent 1.1") {
+      ParentId = parent1.Id
+    });
+    Node subParent12 = tree.Add(new Node("SubParent 1.2") {
+      ParentId = parent1.Id
+    });
+    Node subParent21 = tree.Add(new Node("SubParent 2.1") {
+      ParentId = parent2.Id
+    });
+    Node subParent22 = tree.Add(new Node("SubParent 2.2") {
+      ParentId = parent2.Id
+    });
+    Node subParent31 = tree.Add(new Node("SubParent 3.1") {
+      ParentId = parent3.Id
+    });
+    Node subParent32 = tree.Add(new Node("SubParent 3.2") {
+      ParentId = parent3.Id
+    });
+
+    Node child111 = tree.Add(new Node("Child 1.1.1") {
+      ParentId = subParent11.Id
+    });
+    Node child112 = tree.Add(new Node("Child 1.1.2") {
+      ParentId = subParent11.Id
+    });
+    Node child121 = tree.Add(new Node("Child 1.2.1") {
+      ParentId = subParent12.Id
+    });
+    Node child122 = tree.Add(new Node("Child 1.2.2") {
+      ParentId = subParent12.Id
+    });
+    Node child211 = tree.Add(new Node("Child 2.1.1") {
+      ParentId = subParent21.Id
+    });
+    Node child212 = tree.Add(new Node("Child 2.1.2") {
+      ParentId = subParent21.Id
+    });
+    Node child221 = tree.Add(new Node("Child 2.2.1") {
+      ParentId = subParent22.Id
+    });
+    Node child222 = tree.Add(new Node("Child 2.2.2") {
+      ParentId = subParent22.Id
+    });
+    Node child311 = tree.Add(new Node("Child 3.1.1") {
+      ParentId = subParent31.Id
+    });
+    Node child312 = tree.Add(new Node("Child 3.1.2") {
+      ParentId = subParent31.Id
+    });
+    Node child321 = tree.Add(new Node("Child 3.2.1") {
+      ParentId = subParent32.Id
+    });
+    Node child322 = tree.Add(new Node("Child 3.2.2") {
+      ParentId = subParent32.Id
+    });
+
+    List<Node> traversed = [];
+    foreach(Node node in tree) {
+      traversed.Add(node);
+    }
+
+    Assert.Equal(tree.Count, traversed.Count);
+    Assert.Contains(parent1, traversed);
+    Assert.Contains(parent2, traversed);
+    Assert.Contains(parent3, traversed);
+    Assert.Contains(subParent11, traversed);
+    Assert.Contains(subParent12, traversed);
+    Assert.Contains(subParent21, traversed);
+    Assert.Contains(subParent22, traversed);
+    Assert.Contains(subParent31, traversed);
+    Assert.Contains(subParent32, traversed);
+    Assert.Contains(child111, traversed);
+    Assert.Contains(child112, traversed);
+    Assert.Contains(child121, traversed);
+    Assert.Contains(child122, traversed);
+    Assert.Contains(child211, traversed);
+    Assert.Contains(child212, traversed);
+    Assert.Contains(child221, traversed);
+    Assert.Contains(child222, traversed);
+    Assert.Contains(child311, traversed);
+    Assert.Contains(child312, traversed);
+    Assert.Contains(child321, traversed);
+    Assert.Contains(child322, traversed);
+  }
+
+  [Fact]
+  public void TestEnumerationOnEmptyTree() {
+    HierarchyTree tree = [];
+    List<Node> traversed = [];
+    foreach (Node node in tree) {
+      traversed.Add(node);
+    }
+    Assert.Empty(traversed);
+  }
+
+  [Fact]
+  public void Add_DuplicateNodeName_ThrowsInvalidOperationException() {
+    HierarchyTree tree = [];
+    Node node1 = new("Node");
+    Node node2 = new("Node");
+    tree.Add(node1);
+    InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => tree.Add(node2));
+    Assert.Contains("already exists", ex.Message);
+  }
+
+  [Fact]
+  public void Add_DuplicateNodeId_ThrowsInvalidOperationException() {
+    HierarchyTree tree = [];
+    Guid id = Guid.NewGuid();
+    Node node1 = new("Node1") { Id = id };
+    Node node2 = new("Node2") { Id = id };
+    tree.Add(node1);
+    InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => tree.Add(node2));
+    Assert.Contains("Failed to add node", ex.Message);
+  }
+
+  [Fact]
+  public void Add_NodeWithEmptyName_ThrowsInvalidOperationException() {
+    HierarchyTree tree = [];
+    Node node = new("");
+    InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => tree.Add(node));
+    Assert.Contains("Node name cannot be null, empty, or whitespace", ex.Message);
+  }
+
+  [Fact]
+  public void Add_NodeWithNullName_ThrowsInvalidOperationException() {
+    HierarchyTree tree = [];
+    Node node = new(null);
+    InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => tree.Add(node));
+    Assert.Contains("Node name cannot be null, empty, or whitespace", ex.Message);
+  }
+
+  [Fact]
+  public void Add_NodeWithWhitespaceName_ThrowsInvalidOperationException() {
+    HierarchyTree tree = [];
+    Node node = new("   ");
+    InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => tree.Add(node));
+    Assert.Contains("Node name cannot be null, empty, or whitespace", ex.Message);
+  }
+
+  [Fact]
+  public void Add_NodeWithEmptyId_ThrowsInvalidOperationException() {
+    HierarchyTree tree = [];
+    Node node = new("Node") { Id = Guid.Empty };
+    InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => tree.Add(node));
+    Assert.Contains("Node ID cannot be an empty GUID", ex.Message);
+  }
+
+  [Fact]
+  public void Add_NodeWhenTreeIsFull_ThrowsInvalidOperationException() {
+    HierarchyTree tree = [];
+    for (int i = 0; i < tree.MaxNodes; i++) {
+      tree.Add(new Node($"Node{i}"));
+    }
+    InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => tree.Add(new Node("Overflow")));
+    Assert.Contains("tree is full", ex.Message);
+  }
+
+  [Fact]
+  public void Dispose_ClearsAllDataAndSuppressesFinalize() {
+    HierarchyTree tree = [];
+    Node root = new("Root");
+    Node child = new("Child") { ParentId = root.Id };
+    tree.Add(root);
+    tree.Add(child);
+
+    // Precondition: tree is populated
+    Assert.Equal(2, tree.Count);
+    Assert.True(tree.Contains(root.Id));
+    Assert.True(tree.Contains(child.Id));
+    Assert.True(tree.Roots.Count > 0);
+
+    tree.Dispose();
+
+    // After Dispose, all collections should be empty and state reset
+    Assert.Equal(0, tree.Count);
+    Assert.Empty(tree.Roots);
+    Assert.Empty(tree.FlatTree);
+    Assert.False(tree.Contains(root.Id));
+    Assert.False(tree.Contains(child.Id));
+    Assert.Null(tree.Current);
+  }  
 }

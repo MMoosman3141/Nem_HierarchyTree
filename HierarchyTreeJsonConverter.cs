@@ -17,7 +17,7 @@ public class HierarchyTreeJsonConverter : JsonConverter<HierarchyTree> {
   public override HierarchyTree Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
     List<Node> nodes = JsonSerializer.Deserialize<List<Node>>(ref reader, options);
 
-    HierarchyTree tree = new();
+    HierarchyTree tree = [];
     foreach (Node node in nodes) {
       tree.Add(node);
     }

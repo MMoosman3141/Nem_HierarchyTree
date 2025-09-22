@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Collections;
+using System.Numerics;
 using System.Text.Json.Serialization;
 
 namespace Nem_HierarchyTree {
@@ -6,7 +7,9 @@ namespace Nem_HierarchyTree {
   /// Represents a hierarchical tree structure containing nodes.
   /// </summary>
   [JsonConverter(typeof(HierarchyTreeJsonConverter))]
-  public class HierarchyTree {
+  public class HierarchyTree : IEnumerator<Node>, IEnumerable<Node> {
+    private readonly object _lock = new();
+    
     /// <summary>
     /// The maximum number of nodes allowed in the tree.
     /// </summary>
@@ -30,9 +33,27 @@ namespace Nem_HierarchyTree {
     /// <summary>
     /// Gets a flat dictionary of all nodes in the tree, keyed by their unique identifier.
     /// </summary>
-    public Dictionary<Guid, Node> FlatTree { get; private set; } = [];
+    internal Dictionary<Guid, Node> FlatTree { get; private set; } = [];
 
     private Exception _exceptionValue = null;
+
+    /// <summary>
+    /// Retrieves a node from the tree by its unique identifier.
+    /// </summary>
+    /// <param name="id">The unique identifier of the node to retrieve.</param>
+    /// <returns>The node with the specified identifier, or null if not found.</returns>
+    public Node this[Guid id] {
+      get => GetNode(id);
+    }
+
+    /// <summary>
+    /// Retrieves a node from the tree by its name.
+    /// </summary>
+    /// <param name="name">The name of the node to retrieve.</param>
+    /// <returns>The node with the specified name, or null if not found.</returns>
+    public Node this[string name] {
+      get => GetNode(name);
+    }
 
     /// <summary>
     /// Adds a node to the tree. Throws an exception if the node cannot be added.
@@ -70,72 +91,75 @@ namespace Nem_HierarchyTree {
     /// <param name="addedNode">The node that was added, or null if the addition failed.</param>
     /// <returns>True if the node was added successfully; otherwise, false.</returns>
     public bool TryAdd(Node node, out Node addedNode) {
-      BigInteger bitFlag = 0;
-      bool nameAdded = true;
+      lock (_lock) {
 
-      try {
-        if(string.IsNullOrWhiteSpace(node.Name)) {
-          throw new InvalidOperationException("Node name cannot be null or whitespace.");
-        }
+        BigInteger bitFlag = 0;
+        bool nameAdded = true;
 
-        if(node.Id == Guid.Empty) {
-          throw new InvalidOperationException("Node ID cannot be an empty GUID.");
-        }
+        try {
+          if (string.IsNullOrWhiteSpace(node.Name)) {
+            throw new InvalidOperationException("Node name cannot be null, empty, or whitespace.");
+          }
 
-        bitFlag = GetUnsetBit();
-        if (bitFlag == 0) {
-          throw new InvalidOperationException("The tree is full. No more nodes can be added.");
-        }
+          if (node.Id == Guid.Empty) {
+            throw new InvalidOperationException("Node ID cannot be an empty GUID.");
+          }
 
-        if (!_nodeNames.Add(node.Name)) {
-          nameAdded = false;
-          addedNode = null;
-          throw new InvalidOperationException($"A node with the name '{node.Name}' already exists in the tree. Node names must be unique.");
-        }
+          bitFlag = GetUnsetBit();
+          if (bitFlag == 0) {
+            throw new InvalidOperationException("The tree is full. No more nodes can be added.");
+          }
 
-        if (!FlatTree.TryAdd(node.Id, node)) {
-          if (FlatTree[node.Id].Name == "") {
-            // If the node was added as a false parent, update it.
-            UpdateFalseParent(node);
-
-            addedNode = node;
-            return true;
-          } else {
-            if (nameAdded) {
-              _nodeNames.Remove(node.Name);
-            }
+          if (!_nodeNames.Add(node.Name)) {
+            nameAdded = false;
             addedNode = null;
-            return false;
+            throw new InvalidOperationException($"A node with the name '{node.Name}' already exists in the tree. Node names must be unique.");
           }
-        }
 
-        _bitFlags |= bitFlag;
-        node.BitFlag = bitFlag;
+          if (!FlatTree.TryAdd(node.Id, node)) {
+            if (FlatTree[node.Id].Name == "") {
+              // If the node was added as a false parent, update it.
+              UpdateFalseParent(node);
 
-        if (node.ParentId != Guid.Empty) {
-          if (!FlatTree.TryGetValue(node.ParentId, out Node parent)) {
-            parent = AddFalseParent(node);
+              addedNode = node;
+              return true;
+            } else {
+              if (nameAdded) {
+                _nodeNames.Remove(node.Name);
+              }
+              addedNode = null;
+              return false;
+            }
           }
-          parent.AddChild(node);
-        } else {
-          Roots.Add(node);
-        }
-        addedNode = node;
-        return true;
-      } catch (Exception e) {
-        Roots.Remove(node);
-        FlatTree.Remove(node.Id);
-        if (nameAdded) {
-          _nodeNames.Remove(node.Name);
-        }
-        if (bitFlag != 0) {
-          _bitFlags &= ~bitFlag;
-        }
 
-        _exceptionValue = e;
+          _bitFlags |= bitFlag;
+          node.BitFlag = bitFlag;
 
-        addedNode = null;
-        return false;
+          if (node.ParentId != Guid.Empty) {
+            if (!FlatTree.TryGetValue(node.ParentId, out Node parent)) {
+              parent = AddFalseParent(node);
+            }
+            parent.AddChild(node);
+          } else {
+            Roots.Add(node);
+          }
+          addedNode = node;
+          return true;
+        } catch (Exception e) {
+          Roots.Remove(node);
+          FlatTree.Remove(node.Id);
+          if (nameAdded) {
+            _nodeNames.Remove(node.Name);
+          }
+          if (bitFlag != 0) {
+            _bitFlags &= ~bitFlag;
+          }
+
+          _exceptionValue = e;
+
+          addedNode = null;
+          return false;
+        }
       }
     }
 
@@ -146,7 +170,7 @@ namespace Nem_HierarchyTree {
     /// <param name="nodeToRemove">The node to remove from the tree.</param>
     /// <returns>True if the node was removed successfully; otherwise, false.</returns>
     public List<Node> Remove(Node nodeToRemove) {
-      if(!TryRemove(nodeToRemove, out List<Node> removedNodes)) {
+      if (!TryRemove(nodeToRemove, out List<Node> removedNodes)) {
         if (_exceptionValue != null) {
           throw _exceptionValue;
         } else {
@@ -173,63 +197,65 @@ namespace Nem_HierarchyTree {
     /// <param name="removedNodes">The list of nodes that were removed, or an empty list if the removal failed.</param>
     /// <returns>True if the node and its children were removed successfully; otherwise, false.</returns>
     public bool TryRemove(Node nodeToRemove, out List<Node> removedNodes) {
-      List<Node> removed = [];
-      Stack<Node> nodesToRemove = [];
-      nodesToRemove.Push(nodeToRemove);
+      lock (_lock) {
+        List<Node> removed = [];
+        Stack<Node> nodesToRemove = [];
+        nodesToRemove.Push(nodeToRemove);
 
-      bool removedRoot = false;
-      bool removedChild = false;
+        bool removedRoot = false;
+        bool removedChild = false;
 
-      try {
-        while (nodesToRemove.TryPeek(out Node current)) {
-          if (current.Children.Count > 0) {
-            foreach (Node child in current.Children) {
-              nodesToRemove.Push(child);
-            }
-            continue;
-          }
-
-          nodesToRemove.Pop();
-
-          if (!current.IsFalseParent) {
-            if (current.ParentId == Guid.Empty) {
-              if (!Roots.Remove(current)) {
-                throw new InvalidOperationException("Failed to remove root node from the tree.");
+        try {
+          while (nodesToRemove.TryPeek(out Node current)) {
+            if (current.ChildCount > 0) {
+              foreach (Node child in current._children) {
+                nodesToRemove.Push(child);
               }
-              removedRoot = true;
-            } else {
-              if (current.ParentNode.RemoveChild(current) is null) {
-                throw new InvalidOperationException("Failed to remove child node from its parent.");
+              continue;
+            }
+
+            nodesToRemove.Pop();
+
+            if (!current.IsFalseParent) {
+              if (current.ParentId == Guid.Empty) {
+                if (!Roots.Remove(current)) {
+                  throw new InvalidOperationException("Failed to remove root node from the tree.");
+                }
+                removedRoot = true;
+              } else {
+                if (current.ParentNode.RemoveChild(current) is null) {
+                  throw new InvalidOperationException("Failed to remove child node from its parent.");
+                }
+                removedChild = true;
               }
-              removedChild = true;
             }
+
+            if (!FlatTree.Remove(current.Id)) {
+              if (removedRoot) {
+                Roots.Add(current);
+              }
+              if (removedChild) {
+                current.ParentNode.AddChild(current);
+              }
+              throw new InvalidOperationException("Failed to remove node from the tree.");
+            }
+
+            _bitFlags &= ~current.BitFlag;
+            _nodeNames.Remove(current.Name);
+          }
+          removed.Add(nodeToRemove);
+          removedNodes = removed;
+          return true;
+        } catch (Exception e) {
+          _exceptionValue = e;
+          // Attempt to restore any nodes that were removed before the error occurred.
+          foreach (Node node in removed) {
+            Add(node);
           }
 
-          if (!FlatTree.Remove(current.Id)) {
-            if (removedRoot) {
-              Roots.Add(current);
-            }
-            if (removedChild) {
-              current.ParentNode.AddChild(current);
-            }
-            throw new InvalidOperationException("Failed to remove node from the tree.");
-          }
-
-          _bitFlags &= ~current.BitFlag;
-          _nodeNames.Remove(current.Name);
+          removedNodes = [];
+          return false;
         }
-        removed.Add(nodeToRemove);
-        removedNodes = removed;
-        return true;
-      } catch (Exception e) {
-        _exceptionValue = e;
-        // Attempt to restore any nodes that were removed before the error occurred.
-        foreach (Node node in removed) {
-          Add(node);
-        }
-
-        removedNodes = [];
-        return false;
       }
     }
 
@@ -254,10 +280,7 @@ namespace Nem_HierarchyTree {
     /// Removes all nodes from the tree, resetting its state to empty.
     /// </summary>
     public void Clear() {
-      Roots.Clear();
-      FlatTree.Clear();
-      _nodeNames.Clear();
-      _bitFlags = 0;
+      Dispose();
     }
 
     /// <summary>
@@ -296,7 +319,7 @@ namespace Nem_HierarchyTree {
     /// </summary>
     /// <param name="id">The unique identifier of the node to retrieve.</param>
     /// <returns>The node with the specified identifier, or null if not found.</returns>
-    public Node GetNodeById(Guid id) {
+    public Node GetNode(Guid id) {
       if (FlatTree.TryGetValue(id, out Node node)) {
         return node;
       }
@@ -308,7 +331,7 @@ namespace Nem_HierarchyTree {
     /// </summary>
     /// <param name="name">The name of the node to retrieve.</param>
     /// <returns>The node with the specified name, or null if not found.</returns>
-    public Node GetNodeByName(string name) {
+    public Node GetNode(string name) {
       return FlatTree.Values.FirstOrDefault(n => n.Name == name);
     }
 
@@ -356,6 +379,106 @@ namespace Nem_HierarchyTree {
       };
       FlatTree.Add(falseParent.Id, falseParent);
       return falseParent;
+    }
+
+    /// <summary>
+    /// Returns an enumerator that iterates through the nodes in the tree using pre-order traversal.
+    /// </summary>
+    /// <returns>An enumerator for the nodes in the tree.</returns>
+    public IEnumerator<Node> GetEnumerator() {
+      // Pre-order traversal: children, siblings, then parents
+      if (Roots.Count == 0)
+        yield break;
+
+      Stack<Node> stack = new();
+      // Push roots in reverse order so the first root is visited first
+      for (int i = Roots.Count - 1; i >= 0; i--) {
+        stack.Push(Roots[i]);
+      }
+
+      while (stack.Count > 0) {
+        Node node = stack.Pop();
+        yield return node;
+
+        // Push children in reverse order so the first child is visited first
+        if (node.ChildCount > 0) {
+          for (int i = node.ChildCount - 1; i >= 0; i--) {
+            stack.Push(node._children[i]);
+          }
+        }
+      }
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() {
+      return GetEnumerator();
+    }
+
+    /// <summary>
+    /// Gets or sets the current node in the tree during enumeration.
+    /// </summary>
+    public Node Current { get; set; } = null;
+
+    /// <summary>
+    /// Advances the enumerator to the next node in the tree using pre-order traversal.
+    /// </summary>
+    /// <returns>
+    /// True if the enumerator was successfully advanced to the next node; false if the end of the tree has been reached.
+    /// </returns>
+    public bool MoveNext() {
+      // If Current is null, start at the first root node (pre-order traversal)
+      if (Current == null) {
+        if (Roots.Count == 0) {
+          return false;
+        }
+        Current = Roots[0];
+        return true;
+      }
+
+      // 1. Go to first child if any
+      if(Current.ChildCount > 0) {
+        Current = Current._children[0];
+        return true;
+      }
+
+      // 2. Go to next sibling, or ancestor's next sibling
+      Node node = Current;
+      while (node != null) {
+        Node parent = node.ParentNode;
+        List<Node> siblings = parent == null ? Roots : parent._children;
+        int idx = siblings.IndexOf(node);
+        if (idx >= 0 && idx + 1 < siblings.Count) {
+          Current = siblings[idx + 1];
+          return true;
+        }
+        node = parent;
+      }
+
+      // 3. No more nodes
+      return false;
+    }
+
+    /// <summary>
+    /// Resets the enumerator to its initial position, which is before the first node in the tree.
+    /// </summary>
+    public void Reset() {
+      Current = null;
+    }
+
+    object IEnumerator.Current => Current;
+
+    /// <summary>
+    /// Releases all resources used by the <see cref="HierarchyTree"/> instance and resets its state.
+    /// </summary>
+    public void Dispose() {
+      // No unmanaged resources to release, but clear references for GC.
+      Reset();
+      Roots.Clear();
+      FlatTree.Clear();
+      _nodeNames.Clear();
+      _bitFlags = 0;
+      _exceptionValue = null;
+      Current = null;
+      GC.SuppressFinalize(this);
     }
   }
 }

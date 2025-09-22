@@ -10,7 +10,12 @@ namespace Nem_HierarchyTree;
 /// Represents a node in a bit tree structure, holding a name, a numeric value, and references to parent and child nodes.
 /// </summary>
 public class Node(string name) {
+  private readonly object _lock = new();
+  private readonly object _propogateLock = new();
+  private readonly object _bitFlagLock = new();
+
   private BigInteger _bitFlag;
+  internal List<Node> _children = [];
 
   [JsonIgnore]
   internal bool IsFalseParent { get; set; } = false;
@@ -29,11 +34,17 @@ public class Node(string name) {
 
   [JsonIgnore]
   internal BigInteger BitFlag {
-    get => _bitFlag;
+    get {
+      lock (_bitFlagLock) {
+        return _bitFlag;
+      }
+    }
     set {
-      _bitFlag = value;
-      CheckValue |= value;
-      PropogateAddToParents(value);
+      lock (_bitFlagLock) {
+        _bitFlag = value;
+        CheckValue |= value;
+        PropogateAddToParents(value);
+      }
     }
   }
 
@@ -56,29 +67,52 @@ public class Node(string name) {
   /// Gets or sets the child nodes of this node.
   /// </summary>
   [JsonIgnore]
-  public List<Node> Children { get; private set; } = [];
+  public List<Node> Children {
+    get {
+      lock (_lock) {
+        List<Node> children = [];
+        children.AddRange(_children);
+        return children;
+      }
+    }
+  }
+
+  /// <summary>
+  /// Gets the number of child nodes contained in this node.
+  /// </summary>
+  public int ChildCount {
+    get {
+      lock (_lock) {
+        return _children?.Count ?? 0;
+      }
+    }
+  }
 
   internal bool AddChild(Node child) {
-    if (Children.Contains(child)) {
-      return false;
-    }
-    child.ParentId = Id;
-    child.ParentNode = this;
-    Children.Add(child);
-    CheckValue |= child.CheckValue;
-    PropogateAddToParents(child.CheckValue);
+    lock (_lock) {
+      if (_children.Contains(child)) {
+        return false;
+      }
+      child.ParentId = Id;
+      child.ParentNode = this;
+      _children.Add(child);
+      CheckValue |= child.CheckValue;
+      PropogateAddToParents(child.CheckValue);
 
-    return true;
+      return true;
+    }
   }
 
   internal Node RemoveChild(Node child) {
-    if (Children.Remove(child)) {
-      CheckValue &= ~child.BitFlag;
-      PropogateRemoveToParents(child.BitFlag);
+    lock (_lock) {
+      if (_children.Remove(child)) {
+        CheckValue &= ~child.BitFlag;
+        PropogateRemoveToParents(child.BitFlag);
 
-      return child;
+        return child;
+      }
+      return null;
     }
-    return null;
   }
 
   /// <summary>
@@ -165,17 +199,21 @@ public class Node(string name) {
   }
 
   private void PropogateAddToParents(BigInteger value) {
-    Node current = ParentNode;
-    while (current is not null) {
-      current.CheckValue |= value;
-      current = current.ParentNode;
+    lock (_propogateLock) {
+      Node current = ParentNode;
+      while (current is not null) {
+        current.CheckValue |= value;
+        current = current.ParentNode;
+      }
     }
   }
   private void PropogateRemoveToParents(BigInteger value) {
-    Node current = ParentNode;
-    while (current is not null) {
-      current.CheckValue &= ~value;
-      current = current.ParentNode;
+    lock (_propogateLock) {
+      Node current = ParentNode;
+      while (current is not null) {
+        current.CheckValue &= ~value;
+        current = current.ParentNode;
+      }
     }
   }
 
