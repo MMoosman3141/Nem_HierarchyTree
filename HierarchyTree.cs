@@ -32,13 +32,44 @@ namespace Nem_HierarchyTree {
     /// </summary>
     public Dictionary<Guid, Node> FlatTree { get; private set; } = [];
 
+    private Exception _exceptionValue = null;
+
     /// <summary>
-    /// Adds a node to the tree. If the node has a parent, it is added as a child of the parent.
-    /// Otherwise, it is added as a root node. Returns true if the node was added successfully; otherwise, false.
+    /// Adds a node to the tree. Throws an exception if the node cannot be added.
+    /// </summary>
+    /// <param name="node">The node to add to the tree.</param>
+    /// <returns>The added node.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the node cannot be added due to invalid data or tree constraints.
+    /// </exception>
+    public Node Add(Node node) {
+      if (!TryAdd(node, out Node addedNode)) {
+        if (_exceptionValue != null) {
+          throw _exceptionValue;
+        } else {
+          throw new InvalidOperationException("Failed to add node to the tree for an unknown reason.");
+        }
+      }
+      return addedNode;
+    }
+
+    /// <summary>
+    /// Attempts to add a node to the tree. Returns true if the node was added successfully; otherwise, false.
     /// </summary>
     /// <param name="node">The node to add to the tree.</param>
     /// <returns>True if the node was added successfully; otherwise, false.</returns>
-    public bool Add(Node node) {
+    public bool TryAdd(Node node) {
+      return TryAdd(node, out Node _);
+    }
+
+    /// <summary>
+    /// Attempts to add a node to the tree and outputs the added node if successful.
+    /// Returns true if the node was added successfully; otherwise, false.
+    /// </summary>
+    /// <param name="node">The node to add to the tree.</param>
+    /// <param name="addedNode">The node that was added, or null if the addition failed.</param>
+    /// <returns>True if the node was added successfully; otherwise, false.</returns>
+    public bool TryAdd(Node node, out Node addedNode) {
       BigInteger bitFlag = 0;
       bool nameAdded = true;
 
@@ -58,6 +89,7 @@ namespace Nem_HierarchyTree {
 
         if (!_nodeNames.Add(node.Name)) {
           nameAdded = false;
+          addedNode = null;
           throw new InvalidOperationException($"A node with the name '{node.Name}' already exists in the tree. Node names must be unique.");
         }
 
@@ -65,12 +97,14 @@ namespace Nem_HierarchyTree {
           if (FlatTree[node.Id].Name == "") {
             // If the node was added as a false parent, update it.
             UpdateFalseParent(node);
-            
+
+            addedNode = node;
             return true;
           } else {
             if (nameAdded) {
               _nodeNames.Remove(node.Name);
             }
+            addedNode = null;
             return false;
           }
         }
@@ -86,8 +120,9 @@ namespace Nem_HierarchyTree {
         } else {
           Roots.Add(node);
         }
+        addedNode = node;
         return true;
-      } catch (Exception) {
+      } catch (Exception e) {
         Roots.Remove(node);
         FlatTree.Remove(node.Id);
         if (nameAdded) {
@@ -97,6 +132,9 @@ namespace Nem_HierarchyTree {
           _bitFlags &= ~bitFlag;
         }
 
+        _exceptionValue = e;
+
+        addedNode = null;
         return false;
       }
     }
@@ -107,7 +145,34 @@ namespace Nem_HierarchyTree {
     /// </summary>
     /// <param name="nodeToRemove">The node to remove from the tree.</param>
     /// <returns>True if the node was removed successfully; otherwise, false.</returns>
-    public bool Remove(Node nodeToRemove) {
+    public List<Node> Remove(Node nodeToRemove) {
+      if(!TryRemove(nodeToRemove, out List<Node> removedNodes)) {
+        if (_exceptionValue != null) {
+          throw _exceptionValue;
+        } else {
+          throw new InvalidOperationException("Failed to remove node from the tree for an unknown reason.");
+        }
+      }
+      return removedNodes;
+    }
+
+    /// <summary>
+    /// Attempts to remove a node from the tree. Returns true if the node and its children were removed successfully; otherwise, false.
+    /// </summary>
+    /// <param name="nodeToRemove">The node to remove from the tree.</param>
+    /// <returns>True if the node was removed successfully; otherwise, false.</returns>
+    public bool TryRemove(Node nodeToRemove) {
+      return TryRemove(nodeToRemove, out List<Node> _);
+    }
+
+    /// <summary>
+    /// Attempts to remove a node from the tree and outputs the list of removed nodes.
+    /// Returns true if the node and its children were removed successfully; otherwise, false.
+    /// </summary>
+    /// <param name="nodeToRemove">The node to remove from the tree.</param>
+    /// <param name="removedNodes">The list of nodes that were removed, or an empty list if the removal failed.</param>
+    /// <returns>True if the node and its children were removed successfully; otherwise, false.</returns>
+    public bool TryRemove(Node nodeToRemove, out List<Node> removedNodes) {
       List<Node> removed = [];
       Stack<Node> nodesToRemove = [];
       nodesToRemove.Push(nodeToRemove);
@@ -129,12 +194,12 @@ namespace Nem_HierarchyTree {
           if (!current.IsFalseParent) {
             if (current.ParentId == Guid.Empty) {
               if (!Roots.Remove(current)) {
-                return false;
+                throw new InvalidOperationException("Failed to remove root node from the tree.");
               }
               removedRoot = true;
             } else {
               if (current.ParentNode.RemoveChild(current) is null) {
-                return false;
+                throw new InvalidOperationException("Failed to remove child node from its parent.");
               }
               removedChild = true;
             }
@@ -147,21 +212,23 @@ namespace Nem_HierarchyTree {
             if (removedChild) {
               current.ParentNode.AddChild(current);
             }
-            return false;
+            throw new InvalidOperationException("Failed to remove node from the tree.");
           }
 
           _bitFlags &= ~current.BitFlag;
           _nodeNames.Remove(current.Name);
         }
         removed.Add(nodeToRemove);
+        removedNodes = removed;
         return true;
-      } catch (Exception ex) {
-        Console.Error.WriteLine($"Error removing node: {ex}");
+      } catch (Exception e) {
+        _exceptionValue = e;
         // Attempt to restore any nodes that were removed before the error occurred.
         foreach (Node node in removed) {
           Add(node);
         }
 
+        removedNodes = [];
         return false;
       }
     }
