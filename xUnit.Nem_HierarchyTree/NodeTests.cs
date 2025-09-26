@@ -6,25 +6,25 @@ namespace xUnit.Nem_HierarchyTree;
 public class NodeTests {
   [Fact]
   public void NodeEquality() {
-    Node nullNode1 = null;
-    Node nullNode2 = null;
-    Node node1 = new("node1") {
+    Node<string> nullNode1 = null;
+    Node<string> nullNode2 = null;
+    Node<string> node1 = new("node1") {
       ParentId = Guid.NewGuid()
     };
-    Node node1a = new("node1") {
+    Node<string> node1a = new("node1") {
       ParentId = node1.ParentId,
       Id = node1.Id
     };
-    Node node1b = node1;
+    Node<string> node1b = node1;
 
-    Node node2 = new("node2") {
+    Node<string> node2 = new("node2") {
       ParentId = Guid.NewGuid()
     };
-    Node node2a = new("node2") {
+    Node<string> node2a = new("node2") {
       ParentId = node2.ParentId,
       Id = node2.Id
     };
-    Node node2b = node2;
+    Node<string> node2b = node2;
 
     Assert.Equal(nullNode1, nullNode2);
     Assert.True(nullNode1 == nullNode2);
@@ -59,25 +59,25 @@ public class NodeTests {
 
   [Fact]
   public void NodeEqualityLowLevelPropeties() {
-    Node baseNode = new("node") {
+    Node<string> baseNode = new("node") {
       ParentId = Guid.NewGuid(),
       Id = Guid.NewGuid(),
       BitFlag = 16,
       CheckValue = 16 | 8
     };
-    Node diffId = new(baseNode.Name) {
+    Node<string> diffId = new(baseNode.Contents) {
       ParentId = baseNode.ParentId,
       Id = Guid.NewGuid(),
       BitFlag = baseNode.BitFlag,
       CheckValue = baseNode.CheckValue
     };
-    Node diffName = new("other") {
+    Node<string> diffName = new("other") {
       ParentId = baseNode.ParentId,
       Id = baseNode.Id,
       BitFlag = baseNode.BitFlag,
       CheckValue = baseNode.CheckValue
     };
-    Node diffParent = new(baseNode.Name) {
+    Node<string> diffParent = new(baseNode.Contents) {
       ParentId = Guid.NewGuid(),
       Id = baseNode.Id,
       BitFlag = baseNode.BitFlag,
@@ -92,12 +92,12 @@ public class NodeTests {
   [Fact]
   public void TestGetHashCode() {
     //Two different objects that are equal should produce the same hash code
-    Node node1 = new("node1") {
+    Node<string> node1 = new("node1") {
       ParentId = Guid.NewGuid(),
       BitFlag = 1
 
     };
-    Node node1b = new("node1") {
+    Node<string> node1b = new("node1") {
       ParentId = node1.ParentId,
       Id = node1.Id,
       BitFlag = node1.BitFlag
@@ -109,11 +109,11 @@ public class NodeTests {
 
   [Fact]
   public void Constructor_SetsPropertiesCorrectly() {
-    Node node = new("TestNode") {
+    Node<string> node = new("TestNode") {
       BitFlag = 42
     };
 
-    Assert.Equal("TestNode", node.Name);
+    Assert.Equal("TestNode", node.Contents);
     Assert.Equal((BigInteger)42, node.BitFlag);
     Assert.Equal((BigInteger)42, node.CheckValue);
     Assert.Equal(Guid.Empty, node.ParentId);
@@ -123,11 +123,11 @@ public class NodeTests {
 
   [Fact]
   public void AddChild_AddsChildAndUpdatesCheckValue() {
-    Node parent = new("Parent") {
+    Node<string> parent = new("Parent") {
       Id = Guid.NewGuid(),
       BitFlag = 1,
     };
-    Node child = new("Child") {
+    Node<string> child = new("Child") {
       Id = Guid.NewGuid(),
       BitFlag = 2,
     };
@@ -143,11 +143,11 @@ public class NodeTests {
 
   [Fact]
   public void AddChild_DuplicateChild_ReturnsFalse() {
-    Node parent = new("Parent") {
+    Node<string> parent = new("Parent") {
       Id = Guid.NewGuid(),
       BitFlag = 1,
     };
-    Node child = new("Child") {
+    Node<string> child = new("Child") {
       Id = Guid.NewGuid(),
       BitFlag = 2,
     };
@@ -158,17 +158,17 @@ public class NodeTests {
 
   [Fact]
   public void RemoveChild_RemovesChildAndUpdatesCheckValue() {
-    Node parent = new("Parent") {
+    Node<string> parent = new("Parent") {
       Id = Guid.NewGuid(),
       BitFlag = 1,
     };
-    Node child = new("Child") {
+    Node<string> child = new("Child") {
       Id = Guid.NewGuid(),
       BitFlag = 2,
     };
     parent.AddChild(child);
 
-    Node removed = parent.RemoveChild(child);
+    Node<string> removed = parent.RemoveChild(child);
 
     Assert.Equal(child, removed);
     Assert.DoesNotContain(child, parent.Children);
@@ -177,27 +177,27 @@ public class NodeTests {
 
   [Fact]
   public void RemoveChild_NonExistentChild_ReturnsNull() {
-    Node parent = new("Parent") {
+    Node<string> parent = new("Parent") {
       Id = Guid.NewGuid(),
       BitFlag = 1,
     };
-    Node child = new("Child") {
+    Node<string> child = new("Child") {
       Id = Guid.NewGuid(),
       BitFlag = 2,
     };
 
-    Node result = parent.RemoveChild(child);
+    Node<string> result = parent.RemoveChild(child);
 
     Assert.Null(result);
   }
 
   [Fact]
   public void Contains_ReturnsTrueIfNodeIsContained() {
-    Node parent = new("Parent") {
+    Node<string> parent = new("Parent") {
       Id = Guid.NewGuid(),
       BitFlag = 1,
     };
-    Node child = new("Child") {
+    Node<string> child = new("Child") {
       Id = Guid.NewGuid(),
       BitFlag = 2,
     };
@@ -208,11 +208,11 @@ public class NodeTests {
 
   [Fact]
   public void Contains_ReturnsFalseIfNodeIsNotContained() {
-    Node parent = new("Parent") {
+    Node<string> parent = new("Parent") {
       Id = Guid.NewGuid(),
       BitFlag = 1,
     };
-    Node child = new("Child") {
+    Node<string> child = new("Child") {
       Id = Guid.NewGuid(),
       BitFlag = 2,
     };
@@ -222,7 +222,7 @@ public class NodeTests {
 
   [Fact]
   public void ToString_ReturnsNodeName() {
-    Node node = new("MyNode") {
+    Node<string> node = new("MyNode") {
       Id = Guid.NewGuid(),
       BitFlag = 123,
     };

@@ -1,6 +1,6 @@
 # Nem_HierarchyTree
 
-Nem__HierarchyTree is a C# library for representing and manipulating hierarchical tree structures using bitwise operations for efficient node management. It is designed for scenarios where unique node identification, fast containment checks, and compact representation are required.
+Nem_HierarchyTree is a C# library for representing and manipulating hierarchical tree structures using bitwise operations for efficient node management. It is designed for scenarios where unique node identification, fast containment checks, and compact representation are required.
 
 ## Features
 - Hierarchical tree structure with support for parent and child nodes
@@ -11,97 +11,122 @@ Nem__HierarchyTree is a C# library for representing and manipulating hierarchica
 - Serialization support via custom JSON converter
 - .NET 8 and C# 12 compatible
 
-## Usage
-Create a `HierarchyTree` and add `Node` objects to build your tree. Nodes can be added as roots or as children of other nodes. The library ensures node name uniqueness and manages bit flags for each node.
+## Known Limitations
+- Niether the tree nor nodes are thread-safe.
+- Performance degrades with very large trees.  The default size limit is 2,000 nodes.
+- Nodes must have unique contents (no duplicates allowed).
 
-## Example crating a tree with a parent and a single child node
+## Getting Started
+Add the NuGet package or reference the project in your solution. All types are in the `Nem_HierarchyTree` namespace.
+
+## Basic Usage
+
+### Creating a Tree and Adding Nodes
 ```csharp
-HierarchyTree tree = new();
+using Nem_HierarchyTree;
 
-Node parent = new("Parent");
+HierarchyTree<string> tree = new HierarchyTree<string>();
+
+Node<string> parent = new Node<string>("Parent");
 tree.Add(parent);
 
-Node child = new("Child") {
-  ParentId = parent.Id
-};
+Node<string> child = new Node<string>("Child") { ParentId = parent.Id };
 tree.Add(child);
 ```
 
-## Example to check if a node is part of a parent node
+### Adding Nodes with TryAdd
 ```csharp
-HierarchyTree tree = new();
-
-Node parent1 = new("Parent1");
-tree.Add(parent);
-
-Node parent2 = new("Parent2");
-tree.Add(parent2);
-
-Node child1 = new("child1") {
-  ParentId = parent1.Id
-};
-tree.Add(child1);
-
-Node child2 = new("child2") {
-  ParentId = parent2.Id
-};
-tree.Add(child2);
-
-parent1.Contains(child1); //returns true
-parent2.Contains(child2); //returns true
-parent1.Contains(child2); //returns false
-parent2.Contains(child1); //returns false
+Node<string> another = new Node<string>("Another");
+Node<string> addedNode;
+if (tree.TryAdd(another, out addedNode)) {
+    // addedNode is the node added to the tree
+}
 ```
 
-## Example serialization and deserialization
+### Removing Nodes
 ```csharp
-HierarchyTree originalTree = new();
+// Remove a node and all its children
+tree.Remove(parent); // returns a list of removed nodes
 
-Node parent1 = new("Parent 1");
-Node child11 = new("Child 1.1") {
-  ParentId = parent1.Id
-};
-Node child12 = new("Child 1.2") {
-  ParentId = parent1.Id
-};
-Node child121 = new("Child 1.2.1") {
-  ParentId = child12.Id
-};
-
-// Adding out of order is intentional to show ability to handle mixed order of additions when creating a tree
-originalTree.Add(child121);
-originalTree.Add(child11);
-originalTree.Add(child12);
-originalTree.Add(parent1);
-
-Node parent2 = new("Parent 2");
-Node child21 = new("Child 2.1") {
-  ParentId = parent2.Id
-};
-Node child22 = new("Child 2.2") {
-  ParentId = parent2.Id
-};
-
-originalTree.Add(parent2);
-originalTree.Add(child21);
-originalTree.Add(child22);
-
-Node parent3 = new("Parent 3");
-Node child31 = new("Child 3.1") {
-  ParentId = parent3.Id
-};
-Node child32 = new("Child 3.2") {
-  ParentId = parent3.Id
-};
-
-originalTree.Add(child31);
-originalTree.Add(parent3);
-originalTree.Add(child32);
-
-string json = JsonSerializer.Serialize(originalTree);
-HierarchyTree tree = JsonSerializer.Deserialize<HierarchyTree>(json);
+// Or use TryRemove
+List<Node<string>> removedNodes;
+if (tree.TryRemove(child, out removedNodes)) {
+    // removedNodes contains the nodes that were removed
+}
 ```
 
+### Enumerating Nodes (Pre-order Traversal)
+```csharp
+foreach (Node<string> node in tree) {
+    Console.WriteLine($"Node: {node.Contents}, Id: {node.Id}");
+}
+```
+
+### Containment Checks
+```csharp
+// By node instance
+bool exists = tree.Contains(parent);
+
+// By node Id
+Guid id = parent.Id;
+bool existsById = tree.Contains(id);
+
+// By node contents (string)
+bool existsByName = tree.Contains("Parent");
+
+// Check if a node is a descendant of another
+bool isDescendant = parent.Contains(child); // true
+```
+
+### Accessing Nodes
+```csharp
+// By Id
+Node<string> foundById = tree[parent.Id];
+
+// By contents
+Node<string> foundByContents = tree["Child"];
+```
+
+### Cleaning and Clearing the Tree
+```csharp
+// Remove false parents and orphaned nodes
+tree.CleanTree();
+
+// Remove all nodes and reset the tree
+tree.Clear();
+```
+
+### Serialization and Deserialization
+```csharp
+using System.Text.Json;
+
+// Serialize
+tree.Add(new Node<string>("Root"));
+string json = HierarchyTree<string>.SerializeJson(tree);
+
+// Deserialize
+HierarchyTree<string> deserializedTree = HierarchyTree<string>.DeserializeJson(json);
+```
+
+## Node<T> API Highlights
+- `Id`: Unique identifier (Guid)
+- `Contents`: The value stored in the node
+- `ParentId`: Guid of the parent node (Guid.Empty for root)
+- `Children`: Read-only list of child nodes
+- `ChildCount`: Number of children
+- `Contains(Node<T>)`: Checks if this node contains another node using bitwise operations
+
+## HierarchyTree<T> API Highlights
+- `Add(Node<T>)`: Add a node (throws on error)
+- `TryAdd(Node<T>, out Node<T>)`: Try to add a node
+- `Remove(Node<T>)`: Remove a node and its children
+- `TryRemove(Node<T>, out List<Node<T>>)`
+- `Contains(Node<T> | Guid | string)`: Check for node existence
+- `GetNode(Guid | T)`: Retrieve node by Id or contents
+- `Roots`: List of root nodes
+- `CleanTree()`: Remove false parents and orphans
+- `Clear()`: Remove all nodes
+- `SerializeJson`, `DeserializeJson`: JSON (de)serialization
 
 ## License
 This project is licensed under the MIT License.
