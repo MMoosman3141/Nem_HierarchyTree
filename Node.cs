@@ -9,8 +9,9 @@ namespace Nem_HierarchyTree;
 /// <summary>
 /// Represents a node in a bit tree structure, holding a name, a numeric value, and references to parent and child nodes.
 /// </summary>
-public class Node(string name) {
+public sealed class Node<T>(T contents) {
   private BigInteger _bitFlag;
+  private readonly List<Node<T>> _children = [];
 
   [JsonIgnore]
   internal bool IsFalseParent { get; set; } = false;
@@ -19,20 +20,20 @@ public class Node(string name) {
   /// Gets or sets the unique identifier for this node.
   /// </summary>
   [JsonPropertyName("id")]
-  public Guid Id { get; set; } = Guid.NewGuid();
+  public Guid Id { get; init; } = Guid.NewGuid();
 
   /// <summary>
   /// Gets or sets the name of this node.
   /// </summary>
-  [JsonPropertyName("name")]
-  public string Name { get; set; } = name;
+  [JsonPropertyName("contents")]
+  public T Contents { get; internal set; } = contents;
 
   [JsonIgnore]
   internal BigInteger BitFlag {
     get => _bitFlag;
     set {
       _bitFlag = value;
-      CheckValue |= value;
+      InsertCheckValue(value);
       PropogateAddToParents(value);
     }
   }
@@ -50,30 +51,54 @@ public class Node(string name) {
   /// Gets or sets the parent node of this node.
   /// </summary>
   [JsonIgnore]
-  public Node ParentNode { get; set; } = null;
+  public Node<T> ParentNode { get; internal set; } = null;
 
   /// <summary>
   /// Gets or sets the child nodes of this node.
   /// </summary>
   [JsonIgnore]
-  public List<Node> Children { get; private set; } = [];
+  public IReadOnlyList<Node<T>> Children {
+    get {
+      IReadOnlyList<Node<T>> readonlyList = [.. _children];
+      return readonlyList;
+    }
+  }
 
-  internal bool AddChild(Node child) {
-    if (Children.Contains(child)) {
+  /// <summary>
+  /// Gets the number of child nodes contained in this node.
+  /// </summary>
+  public int ChildCount {
+    get {
+      return _children?.Count ?? 0;
+    }
+  }
+
+  internal bool AddChild(Node<T> child) {
+
+
+    if (_children.Contains(child)) {
       return false;
     }
     child.ParentId = Id;
     child.ParentNode = this;
-    Children.Add(child);
-    CheckValue |= child.CheckValue;
+    _children.Add(child);
+
+    BigInteger childCheckValue;
+    childCheckValue = child.CheckValue;
+    InsertCheckValue(childCheckValue);
+
     PropogateAddToParents(child.CheckValue);
 
     return true;
   }
 
-  internal Node RemoveChild(Node child) {
-    if (Children.Remove(child)) {
-      CheckValue &= ~child.BitFlag;
+
+  internal Node<T> RemoveChild(Node<T> child) {
+    if (_children.Remove(child)) {
+      BigInteger childCheckValue;
+      childCheckValue = child.CheckValue;
+      RemoveCheckValue(childCheckValue);
+
       PropogateRemoveToParents(child.BitFlag);
 
       return child;
@@ -86,24 +111,26 @@ public class Node(string name) {
   /// </summary>
   /// <param name="other">The node to check for containment.</param>
   /// <returns>True if this node contains the specified node; otherwise, false.</returns>
-  public bool Contains(Node other) {
-    return (CheckValue & other.BitFlag) == other.BitFlag;
+  public bool Contains(Node<T> other) {
+    BigInteger snapshot;
+    snapshot = CheckValue;
+    return (snapshot & other.BitFlag) == other.BitFlag;
   }
 
   /// <summary>
   /// Returns the name of this node.
   /// </summary>
   public override string ToString() {
-    return Name;
+    return Contents.ToString();
   }
 
   /// <summary>
-  /// Determines whether two <see cref="Node"/> instances are equal.
+  /// Determines whether two <see cref="Node{T}"/> instances are not equal.
   /// </summary>
   /// <param name="left">The first node to compare.</param>
   /// <param name="right">The second node to compare.</param>
-  /// <returns>True if the nodes are equal; otherwise, false.</returns>
-  public static bool operator ==(Node left, Node right) {
+  /// <returns>True if the nodes are not equal; otherwise, false.</returns>
+  public static bool operator ==(Node<T> left, Node<T> right) {
     if (left is null && right is null) {
       return true;
     }
@@ -114,12 +141,12 @@ public class Node(string name) {
   }
 
   /// <summary>
-  /// Determines whether two <see cref="Node"/> instances are not equal.
+  /// Determines whether two <see cref="Node{T}"/> instances are not equal.
   /// </summary>
   /// <param name="left">The first node to compare.</param>
   /// <param name="right">The second node to compare.</param>
   /// <returns>True if the nodes are not equal; otherwise, false.</returns>
-  public static bool operator !=(Node left, Node right) {
+  public static bool operator !=(Node<T> left, Node<T> right) {
     return !(left == right);
   }
 
@@ -137,16 +164,16 @@ public class Node(string name) {
       return true;
     }
 
-    if (obj is not Node) {
+    if (obj is not Node<T>) {
       return false;
     }
-    Node other = (Node)obj;
+    Node<T> other = (Node<T>)obj;
 
     if (Id != other.Id) {
       return false;
     }
 
-    if (Name != other.Name) {
+    if (!Contents.Equals(other.Contents)) {
       return false;
     }
 
@@ -161,22 +188,30 @@ public class Node(string name) {
   /// Returns a hash code for this node.
   /// </summary>
   public override int GetHashCode() {
-    return HashCode.Combine(Id, Name, ParentId);
+    return HashCode.Combine(Id, Contents, ParentId);
   }
 
   private void PropogateAddToParents(BigInteger value) {
-    Node current = ParentNode;
+    Node<T> current = ParentNode;
     while (current is not null) {
-      current.CheckValue |= value;
+      current.InsertCheckValue(value);
       current = current.ParentNode;
     }
   }
   private void PropogateRemoveToParents(BigInteger value) {
-    Node current = ParentNode;
+    Node<T> current = ParentNode;
     while (current is not null) {
-      current.CheckValue &= ~value;
+      current.RemoveCheckValue(value);
       current = current.ParentNode;
     }
+  }
+
+  private void InsertCheckValue(BigInteger value) {
+    CheckValue |= value;
+  }
+
+  private void RemoveCheckValue(BigInteger value) {
+    CheckValue &= ~value;
   }
 
 }
