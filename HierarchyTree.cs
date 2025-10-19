@@ -493,11 +493,9 @@ public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>
   /// <param name="serializerOptions">The serializer options to use during serialization.</param>
   /// <returns>A JSON string representing the serialized tree.</returns>
   public static string SerializeJson(HierarchyTree<T> tree, JsonSerializerOptions serializerOptions = default) {
-    if (serializerOptions is null) {
-      serializerOptions = new JsonSerializerOptions {
+    serializerOptions ??= new JsonSerializerOptions {
         WriteIndented = true
       };
-    }
 
     serializerOptions.Converters.Add(new HierarchyTreeJsonConverter<T>());
     return JsonSerializer.Serialize(tree, serializerOptions);
@@ -510,11 +508,9 @@ public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>
   /// <param name="serializerOptions">The serializer options to use during deserialization.</param>
   /// <returns>A <see cref="HierarchyTree{T}"/> instance deserialized from the JSON string.</returns>
   public static HierarchyTree<T> DeserializeJson(string json, JsonSerializerOptions serializerOptions = default) {
-    if (serializerOptions is null) {
-      serializerOptions = new JsonSerializerOptions {
+    serializerOptions ??= new JsonSerializerOptions {
         WriteIndented = true
       };
-    }
 
     serializerOptions.Converters.Add(new HierarchyTreeJsonConverter<T>());
     return JsonSerializer.Deserialize<HierarchyTree<T>>(json, serializerOptions);

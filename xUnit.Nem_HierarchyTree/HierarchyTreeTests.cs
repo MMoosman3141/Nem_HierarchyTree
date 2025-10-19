@@ -545,6 +545,11 @@ public class HierarchyTreeTests {
 
     bool result = tree.TryRemove(parent);
     Assert.True(result);
+    Assert.False(tree.FlatTree.ContainsKey(parent.Id));
+    Assert.False(tree.FlatTree.ContainsKey(subParent1.Id));
+    Assert.False(tree.FlatTree.ContainsKey(subParent2.Id));
+    Assert.False(tree.FlatTree.ContainsKey(child1.Id));
+    Assert.False(tree.FlatTree.ContainsKey(child2.Id));
 
     tree.Add(parent);
     tree.Add(subParent1);
@@ -552,14 +557,11 @@ public class HierarchyTreeTests {
     tree.Add(child1);
     tree.Add(child2);
 
-    result = tree.TryRemove(parent);
-
-    Assert.True(result);
-    Assert.False(tree.FlatTree.ContainsKey(parent.Id));
-    Assert.False(tree.FlatTree.ContainsKey(subParent1.Id));
-    Assert.False(tree.FlatTree.ContainsKey(subParent2.Id));
-    Assert.False(tree.FlatTree.ContainsKey(child1.Id));
-    Assert.False(tree.FlatTree.ContainsKey(child2.Id));
+    Assert.True(tree.Contains(parent.Id));
+    Assert.True(tree.Contains(subParent1.Id));
+    Assert.True(tree.Contains(subParent2.Id));
+    Assert.True(tree.Contains(child1.Id));
+    Assert.True(tree.Contains(child2.Id));
   }
 
   [Fact]
