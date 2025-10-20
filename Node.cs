@@ -89,7 +89,7 @@ public sealed class Node<T>(T contents) : IEquatable<Node<T>> where T : notnull 
     return true;
   }
 
-  internal Node<T> RemoveChild(Node<T> child) {
+  internal bool RemoveChild(Node<T> child, out Node<T> removed) {
     ArgumentNullException.ThrowIfNull(child);
 
     if (Contains(child) && _children.Remove(child)) {
@@ -97,9 +97,11 @@ public sealed class Node<T>(T contents) : IEquatable<Node<T>> where T : notnull 
       child.ParentId = Guid.Empty;
       RemoveCheckValue(child.CheckValue);
       PropagateRemoveToParents(child.BitFlag);
-      return child;
+      removed = child;
+      return true;
     }
-    return null;
+    removed = null;
+    return false;
   }
 
   /// <summary>
