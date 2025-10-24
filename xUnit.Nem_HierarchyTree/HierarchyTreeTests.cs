@@ -1015,4 +1015,25 @@ public class HierarchyTreeTests {
     Assert.False(tree.Contains(root.Id));
     Assert.False(tree.Contains(child.Id));
   }
+  // Missing test: ArgumentNullException for indexer
+  [Fact]
+  public void Indexer_ByContents_NullContents_ThrowsArgumentNullException() {
+    HierarchyTree<string> tree = [];
+    Assert.Throws<ArgumentNullException>(() => tree[null]);
+  }
+
+  // Missing test: GetNode with null argument
+  [Fact]
+  public void GetNode_ByContents_NullContents_ReturnsNull() {
+    HierarchyTree<string> tree = [];
+    Assert.Throws<ArgumentNullException>(() => tree.GetNode((string)null));
+  }
+
+  // Missing test: Contains with null node
+  [Fact]
+  public void Contains_NullNode_ThrowsArgumentNullException() {
+    HierarchyTree<string> tree = [];
+    Assert.Throws<ArgumentNullException>(() => tree.Contains((Node<string>)null));
+  }
+
 }
