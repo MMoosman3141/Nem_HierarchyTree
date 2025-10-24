@@ -1014,6 +1014,5 @@ public class HierarchyTreeTests {
     Assert.Empty(tree.FlatTree);
     Assert.False(tree.Contains(root.Id));
     Assert.False(tree.Contains(child.Id));
-    Assert.Null(tree.Current);
-  }  
+  }
 }
