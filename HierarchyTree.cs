@@ -207,6 +207,7 @@ public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>
               throw new InvalidOperationException("Failed to remove child node from its parent.");
             }
           }
+          _contentsToNode.Remove(current.Contents);
         }
 
         if (!FlatTree.Remove(current.Id)) {
@@ -214,8 +215,7 @@ public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>
         }
 
         _bitFlags &= ~current.BitFlag;
-        RecycleBitIndex(current.BitFlag); // Add this line
-        _contentsToNode.Remove(current.Contents);
+        RecycleBitIndex(current.BitFlag);
         removed.Add(current);
       }
 
