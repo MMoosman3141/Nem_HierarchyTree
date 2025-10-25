@@ -168,7 +168,7 @@ public class NodeTests {
     };
     parent.AddChild(child);
 
-    Node<string> removed = parent.RemoveChild(child);
+    parent.RemoveChild(child, out Node<string> removed);
 
     Assert.Equal(child, removed);
     Assert.DoesNotContain(child, parent.Children);
@@ -186,7 +186,7 @@ public class NodeTests {
       BitFlag = 2,
     };
 
-    Node<string> result = parent.RemoveChild(child);
+    parent.RemoveChild(child, out Node<string> result);
 
     Assert.Null(result);
   }

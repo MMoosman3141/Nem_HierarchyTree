@@ -1,14 +1,13 @@
 ﻿using System.Collections;
 using System.Numerics;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Nem_HierarchyTree;
 
 /// <summary>
 /// Represents a hierarchical tree structure containing nodes.
 /// </summary>
-public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>> {
+public sealed class HierarchyTree<T> : IEnumerable<Node<T>>, IDisposable {
   readonly List<Node<T>> _roots = [];
 
   /// <summary>
@@ -17,7 +16,7 @@ public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>
   public int MaxNodes { get; set; } = 2_000;
 
   private BigInteger _bitFlags = 0;
-  private readonly HashSet<T> _nodeContents = [];
+  private readonly Dictionary<T, Node<T>> _contentsToNode = [];
 
   /// <summary>
   /// Gets the number of nodes in the tree.
@@ -29,19 +28,12 @@ public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>
   /// <summary>
   /// Gets or sets the list of root nodes in the tree.
   /// </summary>
-  public IReadOnlyList<Node<T>> Roots {
-    get {
-      IReadOnlyList<Node<T>> readonlyList = [.. _roots];
-      return readonlyList;
-    }
-  }
+  public IReadOnlyList<Node<T>> Roots => _roots;
 
   /// <summary>
   /// Gets a flat dictionary of all nodes in the tree, keyed by their unique identifier.
   /// </summary>
   internal Dictionary<Guid, Node<T>> FlatTree { get; private set; } = [];
-
-  private Exception _exceptionValue = null;
 
   /// <summary>
   /// Retrieves a node from the tree by its unique identifier.
@@ -58,7 +50,10 @@ public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>
   /// <param name="contents">The contents of the node to retrieve.</param>
   /// <returns>The node with the specified name, or null if not found.</returns>
   public Node<T> this[T contents] {
-    get => GetNode(contents);
+    get {
+      ArgumentNullException.ThrowIfNull(contents, nameof(contents));
+      return GetNode(contents);
+    }
   }
 
   /// <summary>
@@ -71,11 +66,7 @@ public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>
   /// </exception>
   public Node<T> Add(Node<T> node) {
     if (!TryAdd(node, out Node<T> addedNode)) {
-      if (_exceptionValue != null) {
-        throw _exceptionValue;
-      } else {
-        throw new InvalidOperationException("Failed to add node to the tree for an unknown reason.");
-      }
+      throw new InvalidOperationException("Failed to add node to the tree.");
     }
     return addedNode;
   }
@@ -97,48 +88,35 @@ public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>
   /// <param name="addedNode">The node that was added, or null if the addition failed.</param>
   /// <returns>True if the node was added successfully; otherwise, false.</returns>
   public bool TryAdd(Node<T> node, out Node<T> addedNode) {
-    BigInteger bitFlag = 0;
-    bool nameAdded = true;
+    addedNode = null;
+
+    if (node.Contents is null || node.Id == Guid.Empty) {
+      return false;
+    }
+
+    BigInteger bitFlag = GetUnsetBit();
+    if (bitFlag == 0) {
+      return false;
+    }
+
+    if (!_contentsToNode.TryAdd(node.Contents, node)) {
+      return false;
+    }
+
+    if (!FlatTree.TryAdd(node.Id, node)) {
+      if (FlatTree[node.Id].IsFalseParent) {
+        UpdateFalseParent(node);
+        addedNode = node;
+        return true;
+      }
+      addedNode = null;
+      return false;
+    }
+
+    _bitFlags |= bitFlag;
+    node.BitFlag = bitFlag;
 
     try {
-      if (node.Contents is null) {
-        throw new InvalidOperationException("Node contents cannot be null.");
-      }
-
-      if (node.Id == Guid.Empty) {
-        throw new InvalidOperationException("Node ID cannot be an empty GUID.");
-      }
-
-      bitFlag = GetUnsetBit();
-      if (bitFlag == 0) {
-        throw new InvalidOperationException("The tree is full. No more nodes can be added.");
-      }
-
-      if (!_nodeContents.Add(node.Contents)) {
-        nameAdded = false;
-        addedNode = null;
-        throw new InvalidOperationException($"A node with identical '{node}' already exists in the tree. Node names must be unique.");
-      }
-
-      if (!FlatTree.TryAdd(node.Id, node)) {
-        if (FlatTree[node.Id].IsFalseParent) {
-          // If the node was added as a false parent, update it.
-          UpdateFalseParent(node);
-
-          addedNode = node;
-          return true;
-        } else {
-          if (nameAdded) {
-            _nodeContents.Remove(node.Contents);
-          }
-          addedNode = null;
-          return false;
-        }
-      }
-
-      _bitFlags |= bitFlag;
-      node.BitFlag = bitFlag;
-
       if (node.ParentId != Guid.Empty) {
         if (!FlatTree.TryGetValue(node.ParentId, out Node<T> parent)) {
           parent = AddFalseParent(node);
@@ -147,39 +125,29 @@ public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>
       } else {
         _roots.Add(node);
       }
+
       addedNode = node;
       return true;
-    } catch (Exception e) {
-      _roots.Remove(node);
+    } catch {
+      // Rollback only if AddFalseParent fails
       FlatTree.Remove(node.Id);
-      if (nameAdded) {
-        _nodeContents.Remove(node.Contents);
-      }
-      if (bitFlag != 0) {
-        _bitFlags &= ~bitFlag;
-      }
+      _contentsToNode.Remove(node.Contents);
+      _bitFlags &= ~bitFlag;
+      RecycleBitIndex(bitFlag);
 
-      _exceptionValue = e;
-
-      addedNode = null;
       return false;
     }
   }
 
-
   /// <summary>
-  /// Removes a node from the tree. If the node has children, they are also removed iteratively.
-  /// Returns true if the node and its children were removed successfully; otherwise, false.
+  /// Removes a node from the tree. If the node has children, they are also removed recursively.
   /// </summary>
   /// <param name="nodeToRemove">The node to remove from the tree.</param>
-  /// <returns>True if the node was removed successfully; otherwise, false.</returns>
+  /// <returns>A list of all nodes that were removed (includes the specified node and all descendants).</returns>
+  /// <exception cref="InvalidOperationException">Thrown when the removal operation fails.</exception>
   public List<Node<T>> Remove(Node<T> nodeToRemove) {
     if (!TryRemove(nodeToRemove, out List<Node<T>> removedNodes)) {
-      if (_exceptionValue != null) {
-        throw _exceptionValue;
-      } else {
-        throw new InvalidOperationException("Failed to remove node from the tree for an unknown reason.");
-      }
+      throw new InvalidOperationException("Failed to remove node from the tree.");
     }
     return removedNodes;
   }
@@ -205,55 +173,45 @@ public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>
     Stack<Node<T>> nodesToRemove = [];
     nodesToRemove.Push(nodeToRemove);
 
-    bool removedRoot = false;
-    bool removedChild = false;
-
     try {
-      while (nodesToRemove.TryPeek(out Node<T> current)) {
+      while (nodesToRemove.Count > 0) {
+        Node<T> current = nodesToRemove.Pop();
+
         if (current.ChildCount > 0) {
+          nodesToRemove.Push(current);
           foreach (Node<T> child in current.Children) {
             nodesToRemove.Push(child);
           }
           continue;
         }
 
-        nodesToRemove.Pop();
-
         if (!current.IsFalseParent) {
           if (current.ParentId == Guid.Empty) {
             if (!_roots.Remove(current)) {
               throw new InvalidOperationException("Failed to remove root node from the tree.");
             }
-            removedRoot = true;
           } else {
-            if (current.ParentNode.RemoveChild(current) is null) {
+            if (!current.ParentNode.RemoveChild(current, out _)) {
               throw new InvalidOperationException("Failed to remove child node from its parent.");
             }
-            removedChild = true;
           }
+          _contentsToNode.Remove(current.Contents);
         }
 
         if (!FlatTree.Remove(current.Id)) {
-          if (removedRoot) {
-            _roots.Add(current);
-          }
-          if (removedChild) {
-            current.ParentNode.AddChild(current);
-          }
           throw new InvalidOperationException("Failed to remove node from the tree.");
         }
 
         _bitFlags &= ~current.BitFlag;
-        _nodeContents.Remove(current.Contents);
+        RecycleBitIndex(current.BitFlag);
+        removed.Add(current);
       }
-      removed.Add(nodeToRemove);
+
       removedNodes = removed;
       return true;
-    } catch (Exception e) {
-      _exceptionValue = e;
-      // Attempt to restore any nodes that were removed before the error occurred.
-      foreach (Node<T> node in removed) {
-        Add(node);
+    } catch {
+      for (int i = removed.Count - 1; i >= 0; i--) {
+        TryAdd(removed[i], out _);
       }
 
       removedNodes = [];
@@ -266,16 +224,13 @@ public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>
   /// Cleans the tree by removing any false parents that were never filled in and any orphaned nodes.
   /// </summary>
   public void CleanTree() {
-    // Clear out any false parents that were never filled in.
-    List<Node<T>> falseParents = [.. FlatTree.Values.Where(n => n.IsFalseParent)];
-    foreach (Node<T> falseParent in falseParents) {
-      Remove(falseParent);
-    }
+    List<Node<T>> toRemove =
+      [.. (from node in FlatTree.Values
+      where node.IsFalseParent || (node.ParentId != Guid.Empty && !FlatTree.ContainsKey(node.ParentId))
+      select node)];
 
-    // Clear out any orphaned nodes
-    List<Node<T>> orphanedNodes = [.. FlatTree.Values.Where(n => n.ParentId != Guid.Empty && !FlatTree.ContainsKey(n.ParentId))];
-    foreach (Node<T> orphan in orphanedNodes) {
-      Remove(orphan);
+    foreach (Node<T> node in toRemove) {
+      TryRemove(node, out _);
     }
   }
 
@@ -283,7 +238,12 @@ public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>
   /// Removes all nodes from the tree, resetting its state to empty.
   /// </summary>
   public void Clear() {
-    Dispose();
+    _roots.Clear();
+    FlatTree.Clear();
+    _contentsToNode.Clear();
+    _availableBitIndices.Clear();
+    _bitFlags = 0;
+    _nextBitIndex = 0;
   }
 
   /// <summary>
@@ -292,6 +252,8 @@ public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>
   /// <param name="node">The node to locate in the tree.</param>
   /// <returns>True if the node exists in the tree; otherwise, false.</returns>
   public bool Contains(Node<T> node) {
+    ArgumentNullException.ThrowIfNull(node, nameof(node));
+
     if (!FlatTree.TryGetValue(node.Id, out Node<T> value)) {
       return false;
     }
@@ -314,7 +276,7 @@ public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>
   /// <param name="contents">The contents of the node to locate.</param>
   /// <returns>True if a node with the specified contents exists in the tree; otherwise, false.</returns>
   public bool Contains(T contents) {
-    return _nodeContents.Contains(contents);
+    return _contentsToNode.ContainsKey(contents);
   }
 
   /// <summary>
@@ -323,10 +285,7 @@ public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>
   /// <param name="id">The unique identifier of the node to retrieve.</param>
   /// <returns>The node with the specified identifier, or null if not found.</returns>
   public Node<T> GetNode(Guid id) {
-    if (FlatTree.TryGetValue(id, out Node<T> node)) {
-      return node;
-    }
-    return null;
+    return FlatTree.TryGetValue(id, out Node<T> node) ? node : null;
   }
 
   /// <summary>
@@ -335,23 +294,39 @@ public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>
   /// <param name="contents">The contents of the node to retrieve.</param>
   /// <returns>The node with the specified contents, or null if not found.</returns>
   public Node<T> GetNode(T contents) {
-    return FlatTree.Values.FirstOrDefault(n => n.Contents.Equals(contents));
+    return _contentsToNode.TryGetValue(contents, out Node<T> node) ? node : null;
   }
 
+  private readonly Queue<int> _availableBitIndices = new();
+  private int _nextBitIndex = 0;
+
   private BigInteger GetUnsetBit() {
-    for (int i = 0; i < MaxNodes; i++) {
-      BigInteger bit = BigInteger.One << i;
-      if ((_bitFlags & bit) == 0) {
-        return bit;
+    int index;
+
+    if (_availableBitIndices.Count > 0) {
+      index = _availableBitIndices.Dequeue();
+    } else {
+      if (_nextBitIndex >= MaxNodes) {
+        return 0; // Tree is full
       }
+      index = _nextBitIndex++;
     }
-    return 0; // All bits are set
+
+    return BigInteger.One << index;
+  }
+
+  private void RecycleBitIndex(BigInteger bitFlag) {
+    if (bitFlag == 0) return;
+
+    int index = (int)BigInteger.Log(bitFlag, 2);
+    _availableBitIndices.Enqueue(index);
   }
 
   private void UpdateFalseParent(Node<T> node) {
     // Do not change the bit flag as the correct value was assigned when the false parent
     // was originally added.
     Node<T> falseParent = FlatTree[node.Id];
+    _contentsToNode[node.Contents] = falseParent;
     falseParent.ParentId = node.ParentId;
     falseParent.Contents = node.Contents;
     falseParent.IsFalseParent = false;
@@ -417,74 +392,11 @@ public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>
   }
 
   /// <summary>
-  /// Gets or sets the current node in the tree during enumeration.
-  /// </summary>
-  public Node<T> Current { get; set; } = null;
-
-  /// <summary>
-  /// Advances the enumerator to the next node in the tree using pre-order traversal.
-  /// </summary>
-  /// <returns>
-  /// True if the enumerator was successfully advanced to the next node; false if the end of the tree has been reached.
-  /// </returns>
-  public bool MoveNext() {
-    // If Current is null, start at the first root node (pre-order traversal)
-    if (Current == null) {
-      if (Roots.Count == 0) {
-        return false;
-      }
-      Current = Roots[0];
-      return true;
-    }
-
-    // 1. Go to first child if any
-    if (Current.ChildCount > 0) {
-      Current = Current.Children[0];
-      return true;
-    }
-
-    // 2. Go to next sibling, or ancestor's next sibling
-    Node<T> node = Current;
-    while (node != null) {
-      Node<T> parent = node.ParentNode;
-      List<Node<T>> siblings = (List<Node<T>>)(parent == null ? Roots : parent.Children);
-      int idx = siblings.IndexOf(node);
-      if (idx >= 0 && idx + 1 < siblings.Count) {
-        Current = siblings[idx + 1];
-        return true;
-      }
-      node = parent;
-    }
-
-    // 3. No more nodes
-    return false;
-  }
-
-  /// <summary>
-  /// Resets the enumerator to its initial position, which is before the first node in the tree.
-  /// </summary>
-  public void Reset() {
-    Current = null;
-  }
-
-  object IEnumerator.Current => Current;
-
-  /// <summary>
   /// Releases all resources used by the <see cref="HierarchyTree{T}"/> instance and resets its state.
   /// </summary>
   public void Dispose() {
-    // No unmanaged resources to release, but clear references for GC.
-    Reset();
-    _roots.Clear();
-    FlatTree.Clear();
-    _nodeContents.Clear();
-    _bitFlags = 0;
-    _exceptionValue = null;
-    Current = null;
-    GC.SuppressFinalize(this);
+    Clear();
   }
-
-
 
   /// <summary>
   /// Serializes a <see cref="HierarchyTree{T}"/> instance to a JSON string.
@@ -493,11 +405,9 @@ public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>
   /// <param name="serializerOptions">The serializer options to use during serialization.</param>
   /// <returns>A JSON string representing the serialized tree.</returns>
   public static string SerializeJson(HierarchyTree<T> tree, JsonSerializerOptions serializerOptions = default) {
-    if (serializerOptions is null) {
-      serializerOptions = new JsonSerializerOptions {
-        WriteIndented = true
-      };
-    }
+    serializerOptions ??= new JsonSerializerOptions {
+      WriteIndented = true
+    };
 
     serializerOptions.Converters.Add(new HierarchyTreeJsonConverter<T>());
     return JsonSerializer.Serialize(tree, serializerOptions);
@@ -510,11 +420,9 @@ public sealed class HierarchyTree<T> : IEnumerator<Node<T>>, IEnumerable<Node<T>
   /// <param name="serializerOptions">The serializer options to use during deserialization.</param>
   /// <returns>A <see cref="HierarchyTree{T}"/> instance deserialized from the JSON string.</returns>
   public static HierarchyTree<T> DeserializeJson(string json, JsonSerializerOptions serializerOptions = default) {
-    if (serializerOptions is null) {
-      serializerOptions = new JsonSerializerOptions {
-        WriteIndented = true
-      };
-    }
+    serializerOptions ??= new JsonSerializerOptions {
+      WriteIndented = true
+    };
 
     serializerOptions.Converters.Add(new HierarchyTreeJsonConverter<T>());
     return JsonSerializer.Deserialize<HierarchyTree<T>>(json, serializerOptions);

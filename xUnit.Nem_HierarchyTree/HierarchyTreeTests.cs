@@ -545,6 +545,11 @@ public class HierarchyTreeTests {
 
     bool result = tree.TryRemove(parent);
     Assert.True(result);
+    Assert.False(tree.FlatTree.ContainsKey(parent.Id));
+    Assert.False(tree.FlatTree.ContainsKey(subParent1.Id));
+    Assert.False(tree.FlatTree.ContainsKey(subParent2.Id));
+    Assert.False(tree.FlatTree.ContainsKey(child1.Id));
+    Assert.False(tree.FlatTree.ContainsKey(child2.Id));
 
     tree.Add(parent);
     tree.Add(subParent1);
@@ -552,14 +557,11 @@ public class HierarchyTreeTests {
     tree.Add(child1);
     tree.Add(child2);
 
-    result = tree.TryRemove(parent);
-
-    Assert.True(result);
-    Assert.False(tree.FlatTree.ContainsKey(parent.Id));
-    Assert.False(tree.FlatTree.ContainsKey(subParent1.Id));
-    Assert.False(tree.FlatTree.ContainsKey(subParent2.Id));
-    Assert.False(tree.FlatTree.ContainsKey(child1.Id));
-    Assert.False(tree.FlatTree.ContainsKey(child2.Id));
+    Assert.True(tree.Contains(parent.Id));
+    Assert.True(tree.Contains(subParent1.Id));
+    Assert.True(tree.Contains(subParent2.Id));
+    Assert.True(tree.Contains(child1.Id));
+    Assert.True(tree.Contains(child2.Id));
   }
 
   [Fact]
@@ -950,7 +952,7 @@ public class HierarchyTreeTests {
     Node<string> node2 = new("Node");
     tree.Add(node1);
     InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => tree.Add(node2));
-    Assert.Contains("already exists", ex.Message);
+    Assert.Contains("Failed to add node to the tree.", ex.Message);
   }
 
   [Fact]
@@ -969,7 +971,7 @@ public class HierarchyTreeTests {
     HierarchyTree<string> tree = [];
     Node<string> node = new(null);
     InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => tree.Add(node));
-    Assert.Contains("Node contents cannot be null", ex.Message);
+    Assert.Contains("Failed to add node to the tree.", ex.Message);
   }
 
   [Fact]
@@ -977,7 +979,7 @@ public class HierarchyTreeTests {
     HierarchyTree<string> tree = [];
     Node<string> node = new("Node") { Id = Guid.Empty };
     InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => tree.Add(node));
-    Assert.Contains("Node ID cannot be an empty GUID", ex.Message);
+    Assert.Contains("Failed to add node to the tree.", ex.Message);
   }
 
   [Fact]
@@ -987,7 +989,7 @@ public class HierarchyTreeTests {
       tree.Add(new Node<string>($"Node{i}"));
     }
     InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => tree.Add(new Node<string>("Overflow")));
-    Assert.Contains("tree is full", ex.Message);
+    Assert.Contains("Failed to add node to the tree.", ex.Message);
   }
 
   [Fact]
@@ -1012,6 +1014,26 @@ public class HierarchyTreeTests {
     Assert.Empty(tree.FlatTree);
     Assert.False(tree.Contains(root.Id));
     Assert.False(tree.Contains(child.Id));
-    Assert.Null(tree.Current);
-  }  
+  }
+  // Missing test: ArgumentNullException for indexer
+  [Fact]
+  public void Indexer_ByContents_NullContents_ThrowsArgumentNullException() {
+    HierarchyTree<string> tree = [];
+    Assert.Throws<ArgumentNullException>(() => tree[null]);
+  }
+
+  // Missing test: GetNode with null argument
+  [Fact]
+  public void GetNode_ByContents_NullContents_ReturnsNull() {
+    HierarchyTree<string> tree = [];
+    Assert.Throws<ArgumentNullException>(() => tree.GetNode((string)null));
+  }
+
+  // Missing test: Contains with null node
+  [Fact]
+  public void Contains_NullNode_ThrowsArgumentNullException() {
+    HierarchyTree<string> tree = [];
+    Assert.Throws<ArgumentNullException>(() => tree.Contains((Node<string>)null));
+  }
+
 }

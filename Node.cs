@@ -9,7 +9,7 @@ namespace Nem_HierarchyTree;
 /// <summary>
 /// Represents a node in a bit tree structure, holding a name, a numeric value, and references to parent and child nodes.
 /// </summary>
-public sealed class Node<T>(T contents) {
+public sealed class Node<T>(T contents) : IEquatable<Node<T>> where T : notnull  {
   private BigInteger _bitFlag;
   private readonly List<Node<T>> _children = [];
 
@@ -34,7 +34,7 @@ public sealed class Node<T>(T contents) {
     set {
       _bitFlag = value;
       InsertCheckValue(value);
-      PropogateAddToParents(value);
+      PropagateAddToParents(value);
     }
   }
 
@@ -54,56 +54,54 @@ public sealed class Node<T>(T contents) {
   public Node<T> ParentNode { get; internal set; } = null;
 
   /// <summary>
-  /// Gets or sets the child nodes of this node.
+  /// Gets the child nodes of this node.
   /// </summary>
+  /// <remarks>
+  /// Returns a read-only view that reflects the current state of the children collection.
+  /// The collection maintains insertion order.
+  /// </remarks>
   [JsonIgnore]
-  public IReadOnlyList<Node<T>> Children {
-    get {
-      IReadOnlyList<Node<T>> readonlyList = [.. _children];
-      return readonlyList;
-    }
-  }
+  public IReadOnlyList<Node<T>> Children => _children;
 
   /// <summary>
   /// Gets the number of child nodes contained in this node.
   /// </summary>
-  public int ChildCount {
-    get {
-      return _children?.Count ?? 0;
-    }
-  }
+  public int ChildCount => _children.Count;
 
   internal bool AddChild(Node<T> child) {
+    ArgumentNullException.ThrowIfNull(child);
 
-
-    if (_children.Contains(child)) {
+    if (Contains(child)) {
       return false;
     }
+
+    if (IsAncestorOf(child)) {
+      throw new InvalidOperationException("Cannot add ancestor as child.");
+    }
+
     child.ParentId = Id;
     child.ParentNode = this;
     _children.Add(child);
 
-    BigInteger childCheckValue;
-    childCheckValue = child.CheckValue;
-    InsertCheckValue(childCheckValue);
-
-    PropogateAddToParents(child.CheckValue);
+    InsertCheckValue(child.CheckValue);
+    PropagateAddToParents(child.CheckValue);
 
     return true;
   }
 
+  internal bool RemoveChild(Node<T> child, out Node<T> removed) {
+    ArgumentNullException.ThrowIfNull(child);
 
-  internal Node<T> RemoveChild(Node<T> child) {
-    if (_children.Remove(child)) {
-      BigInteger childCheckValue;
-      childCheckValue = child.CheckValue;
-      RemoveCheckValue(childCheckValue);
-
-      PropogateRemoveToParents(child.BitFlag);
-
-      return child;
+    if (Contains(child) && _children.Remove(child)) {
+      child.ParentNode = null;
+      child.ParentId = Guid.Empty;
+      RemoveCheckValue(child.CheckValue);
+      PropagateRemoveToParents(child.BitFlag);
+      removed = child;
+      return true;
     }
-    return null;
+    removed = null;
+    return false;
   }
 
   /// <summary>
@@ -112,9 +110,7 @@ public sealed class Node<T>(T contents) {
   /// <param name="other">The node to check for containment.</param>
   /// <returns>True if this node contains the specified node; otherwise, false.</returns>
   public bool Contains(Node<T> other) {
-    BigInteger snapshot;
-    snapshot = CheckValue;
-    return (snapshot & other.BitFlag) == other.BitFlag;
+    return (CheckValue & other.BitFlag) == other.BitFlag;
   }
 
   /// <summary>
@@ -151,23 +147,18 @@ public sealed class Node<T>(T contents) {
   }
 
   /// <summary>
-  /// Determines whether the specified object is equal to the current node.
+  /// Determines whether the specified <see cref="Node{T}"/> is equal to the current node.
   /// </summary>
-  /// <param name="obj">The object to compare with the current node.</param>
-  /// <returns>True if the specified object is equal to the current node; otherwise, false.</returns>
-  public override bool Equals(object obj) {
-    if (obj is null) {
+  /// <param name="other">The node to compare with the current node.</param>
+  /// <returns>True if the specified node is equal to the current node; otherwise, false.</returns>
+  public bool Equals(Node<T> other) {
+    if (other is null) {
       return false;
     }
 
-    if (ReferenceEquals(this, obj)) {
+    if (ReferenceEquals(this, other)) {
       return true;
     }
-
-    if (obj is not Node<T>) {
-      return false;
-    }
-    Node<T> other = (Node<T>)obj;
 
     if (Id != other.Id) {
       return false;
@@ -185,20 +176,40 @@ public sealed class Node<T>(T contents) {
   }
 
   /// <summary>
+  /// Determines whether the specified object is equal to the current node.
+  /// </summary>
+  /// <param name="obj">The object to compare with the current node.</param>
+  /// <returns>True if the specified object is equal to the current node; otherwise, false.</returns>
+  public override bool Equals(object obj) {
+    return obj is Node<T> other && Equals(other);
+  }
+
+  /// <summary>
   /// Returns a hash code for this node.
   /// </summary>
   public override int GetHashCode() {
     return HashCode.Combine(Id, Contents, ParentId);
   }
 
-  private void PropogateAddToParents(BigInteger value) {
+  private bool IsAncestorOf(Node<T> potentialDescendant) {
+    Node<T> current = this;
+    while (current != null) {
+      if (current == potentialDescendant) {
+        return true;
+      }
+      current = current.ParentNode;
+    }
+    return false;
+  }
+
+  private void PropagateAddToParents(BigInteger value) {
     Node<T> current = ParentNode;
     while (current is not null) {
       current.InsertCheckValue(value);
       current = current.ParentNode;
     }
   }
-  private void PropogateRemoveToParents(BigInteger value) {
+  private void PropagateRemoveToParents(BigInteger value) {
     Node<T> current = ParentNode;
     while (current is not null) {
       current.RemoveCheckValue(value);

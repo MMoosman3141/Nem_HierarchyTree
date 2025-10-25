@@ -11,13 +11,26 @@ Nem_HierarchyTree is a C# library for representing and manipulating hierarchical
 - Serialization support via custom JSON converter
 - .NET 8 and C# 12 compatible
 
+## Requirements
+- .NET 8.0 or later
+- C# 12.0 language features
+
 ## Known Limitations
-- Niether the tree nor nodes are thread-safe.
+- Neither the tree nor nodes are thread-safe.
 - Performance degrades with very large trees.  The default size limit is 2,000 nodes.
 - Nodes must have unique contents (no duplicates allowed).
 
 ## Getting Started
 Add the NuGet package or reference the project in your solution. All types are in the `Nem_HierarchyTree` namespace.
+
+## Installation
+
+Install via NuGet Package Manager:
+
+Or via .NET CLI:
+```bash
+dotnet add package Nem_HierarchyTree --version 2.0.0
+```
 
 ## Basic Usage
 
@@ -108,6 +121,13 @@ string json = HierarchyTree<string>.SerializeJson(tree);
 HierarchyTree<string> deserializedTree = HierarchyTree<string>.DeserializeJson(json);
 ```
 
+### Configuring Tree Size Limits
+You can configure the maximum allowed size of the tree by setting the `MaxSize` property. The default value is 2000 nodes. To change the limit, set this property before adding nodes:
+
+```csharp
+tree.MaxSize = 5000; // Set max tree size to 5000 nodes
+```
+
 ## Node<T> API Highlights
 - `Id`: Unique identifier (Guid)
 - `Contents`: The value stored in the node
@@ -129,4 +149,6 @@ HierarchyTree<string> deserializedTree = HierarchyTree<string>.DeserializeJson(j
 - `SerializeJson`, `DeserializeJson`: JSON (de)serialization
 
 ## License
-This project is licensed under the MIT License.
+Copyright (c) 2025, Mark Moosman
+
+This project is licensed under the MIT License. See the [LICENSE.txt](LICENSE.txt) file for details.
